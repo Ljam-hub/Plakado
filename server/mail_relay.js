@@ -47,6 +47,12 @@ if (gmailUser && gmailPass) {
 }
 
 app.post('/send-otp', async (req, res) => {
+  if (!gmailUser || !gmailPass) {
+    return res.status(500).json({
+      error: 'Mail relay missing GMAIL_USER or GMAIL_PASS environment variables.'
+    });
+  }
+
   const { to, code } = req.body;
   if (!to || !code) {
     return res.status(400).json({ error: 'Missing required fields: to or code' });
