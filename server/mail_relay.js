@@ -92,7 +92,15 @@ app.post('/send-otp', async (req, res) => {
   }
 });
 
-const PORT = 5050;
-app.listen(PORT, () => {
-  console.log(`Plakado Gmail SMTP Relay active on http://localhost:${PORT}`);
+app.get('/', (req, res) => {
+  res.json({
+    status: 'ok',
+    service: 'Plakado ISUFST Mail Relay',
+    connected: Boolean(gmailUser && gmailPass)
+  });
+});
+
+const PORT = process.env.PORT || 5050;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Plakado Gmail SMTP Relay active on port ${PORT}`);
 });
