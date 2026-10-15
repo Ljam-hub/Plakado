@@ -78,7 +78,7 @@ class PlakadoApp extends StatelessWidget {
       child: Consumer<ThemeController>(
         builder: (context, themeCtrl, _) {
           return MaterialApp(
-            title: 'Plakado - Campus Plate Identifier & Gate Security',
+            title: 'Plakado',
             debugShowCheckedModeBanner: false,
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
