@@ -17,7 +17,7 @@ class EmailDispatchResult {
 class EmailService {
   // Configured via compile-time environment or CI/CD: --dart-define=RESEND_API_KEY=re_xxx
   static const String _resendApiKey = String.fromEnvironment('RESEND_API_KEY', defaultValue: '');
-  static const String _fromAddress = 'ISUFST Gate Security <onboarding@resend.dev>';
+  static const String _fromAddress = 'Plakado <onboarding@resend.dev>';
   static const String _cloudSmtpRelayUrl = 'https://plakado-mail.onrender.com/send-otp';
   static const String _localSmtpRelayUrl = 'http://localhost:5050/send-otp';
 

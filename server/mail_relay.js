@@ -72,18 +72,18 @@ app.post('/send-otp', async (req, res) => {
   }
 
   const mailOptions = {
-    from: `"ISUFST Campus Gate Security" <${gmailUser || 'noreply@isufst.edu.ph'}>`,
+    from: `"Plakado" <${gmailUser || 'noreply@isufst.edu.ph'}>`,
     to: to,
-    subject: `[${code}] Your ISUFST Campus Pass Verification Code`,
+    subject: `[${code}] Your Plakado Verification Code`,
     html: `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 14px; background: #ffffff;">
         <div style="background: linear-gradient(135deg, #1e3a8a, #2563eb); padding: 24px; border-radius: 10px; text-align: center; color: #ffffff;">
-          <h2 style="margin: 0; font-size: 20px; font-weight: 800;">ISUFST CAMPUS GATE SECURITY</h2>
-          <p style="margin: 6px 0 0 0; font-size: 13px; opacity: 0.9;">Plakado Automatic License Plate Recognition System</p>
+          <h2 style="margin: 0; font-size: 22px; font-weight: 800; letter-spacing: 1.5px;">PLAKADO</h2>
+          <p style="margin: 6px 0 0 0; font-size: 13px; opacity: 0.9;">ISUFST Campus Gate Security & ALPR</p>
         </div>
         <div style="padding: 28px 12px; text-align: center;">
           <p style="color: #475569; font-size: 14px; line-height: 1.6; margin-bottom: 20px;">
-            You requested a verification code to access your <strong>ISUFST Campus Vehicle Pass</strong> account. Use this one-time security code to verify your sign-in:
+            You requested a verification code to access your <strong>Plakado Campus Vehicle Pass</strong> account. Use this one-time security code to verify your sign-in:
           </p>
           <div style="display: inline-block; background: #f1f5f9; padding: 18px 32px; border-radius: 12px; border: 2px dashed #cbd5e1; margin: 12px 0 20px 0;">
             <span style="font-family: 'Courier New', Courier, monospace; font-size: 34px; font-weight: 800; letter-spacing: 8px; color: #1e3a8a;">${code}</span>
@@ -114,7 +114,7 @@ app.post('/send-otp', async (req, res) => {
         },
         body: JSON.stringify({
           sender: {
-            name: 'ISUFST Campus Gate Security',
+            name: 'Plakado',
             email: senderEmail
           },
           to: [{ email: to }],
@@ -155,7 +155,7 @@ app.post('/send-otp', async (req, res) => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          from: 'ISUFST Gate Security <onboarding@resend.dev>',
+          from: 'Plakado <onboarding@resend.dev>',
           to: [to],
           subject: mailOptions.subject,
           html: mailOptions.html
