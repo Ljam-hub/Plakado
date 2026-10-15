@@ -1,0 +1,103 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+*~
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IDEs and Editors
+*.iml
+*.ipr
+*.iws
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Flutter / Dart / Pub
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+/build/
+/coverage/
+
+# Symbolication & Obfuscation
+app.*.symbols
+app.*.map.json
+
+# Node.js & Server
+node_modules/
+**/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Sensitive Credentials, Secrets & Environment
+*.env
+*.env.*
+.env
+server/.env
+credentials.json
+server/credentials.json
+*.key
+*.keystore
+*.jks
+key.properties
+lib/config/secrets.dart
+*.pem
+*.cert
+*.p12
+*.pfx
+
+# Firebase CLI & Debug Logs
+.firebase/
+firebase-debug.log*
+firestore-debug.log*
+ui-debug.log*
+
+# Android Platform
+/android/app/debug
+/android/app/profile
+/android/app/release
+android/local.properties
+**/android/local.properties
+android/.gradle/
+android/app/build/
+android/.cxx/
+android/app/.cxx/
+GeneratedPluginRegistrant.java
+
+# iOS / macOS Platform
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Flutter/Generated.xcconfig
+ios/Flutter/app.framework
+macos/Flutter/ephemeral/
+**/ios/**/GeneratedPluginRegistrant.*
+
+# Windows / Linux Platform
+windows/flutter/ephemeral/
+windows/x64/
+windows/x86/
+windows/*.suo
+windows/*.user
+linux/flutter/ephemeral/
