@@ -10,8 +10,12 @@ const fs = require('fs');
 const path = require('path');
 
 // Load credentials safely from credentials.json (gitignored) or environment variables
-let gmailUser = process.env.GMAIL_USER;
-let gmailPass = process.env.GMAIL_PASS;
+let gmailUser = process.env.GMAIL_USER || process.env.gmail_user || process.env.Gmail_User;
+let gmailPass = process.env.GMAIL_PASS || process.env.gmail_pass || process.env.Gmail_Pass;
+
+// Clean up any extra spaces or quotes if pasted in Web UI
+if (gmailUser) gmailUser = gmailUser.trim().replace(/^["']|["']$/g, '');
+if (gmailPass) gmailPass = gmailPass.trim().replace(/^["']|["']$/g, '').replace(/\s+/g, '');
 
 const credsPath = path.join(__dirname, 'credentials.json');
 if (fs.existsSync(credsPath)) {
@@ -102,7 +106,11 @@ app.get('/', (req, res) => {
   res.json({
     status: 'ok',
     service: 'Plakado ISUFST Mail Relay',
-    connected: Boolean(gmailUser && gmailPass)
+    connected: Boolean(gmailUser && gmailPass),
+    hasUser: Boolean(gmailUser),
+    hasPass: Boolean(gmailPass),
+    userEmail: gmailUser ? `${gmailUser.substring(0, 3)}***@gmail.com` : null,
+    envKeys: Object.keys(process.env).filter(k => !k.includes('SECRET') && !k.includes('PASS') && !k.includes('KEY'))
   });
 });
 
