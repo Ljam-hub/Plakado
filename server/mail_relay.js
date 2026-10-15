@@ -18,6 +18,7 @@ if (gmailUser) gmailUser = gmailUser.trim().replace(/^["']|["']$/g, '');
 if (gmailPass) gmailPass = gmailPass.trim().replace(/^["']|["']$/g, '').replace(/\s+/g, '');
 
 let resendApiKey = process.env.RESEND_API_KEY;
+let brevoApiKey = process.env.BREVO_API_KEY || process.env.brevo_api_key;
 
 const credsPath = path.join(__dirname, 'credentials.json');
 if (fs.existsSync(credsPath)) {
@@ -26,6 +27,7 @@ if (fs.existsSync(credsPath)) {
     gmailUser = gmailUser || creds.user;
     gmailPass = gmailPass || creds.pass;
     resendApiKey = resendApiKey || creds.resendApiKey;
+    brevoApiKey = brevoApiKey || creds.brevoApiKey;
   } catch (err) {
     console.warn('[Credentials Warning] Could not parse credentials.json:', err.message);
   }
@@ -37,6 +39,9 @@ const transporter = nodemailer.createTransport({
   port: 587,
   secure: false,
   requireTLS: true,
+  connectionTimeout: 5000,
+  greetingTimeout: 5000,
+  socketTimeout: 8000,
   auth: {
     user: gmailUser,
     pass: gmailPass
@@ -47,19 +52,17 @@ const transporter = nodemailer.createTransport({
 if (gmailUser && gmailPass) {
   transporter.verify(function (error, success) {
     if (error) {
-      console.error('[SMTP Transporter Error]:', error);
+      console.warn('[SMTP Transporter Notice] Direct SMTP not available on this network (ports may be blocked). HTTPS fallback will be used.');
     } else {
       console.log(`[SMTP Ready] Google Mail Server connected for ${gmailUser}`);
     }
   });
-} else {
-  console.warn('[SMTP Warning] No Gmail credentials found. Please provide server/credentials.json or GMAIL_USER/GMAIL_PASS.');
 }
 
 app.post('/send-otp', async (req, res) => {
-  if (!gmailUser || !gmailPass) {
+  if (!brevoApiKey && (!gmailUser || !gmailPass)) {
     return res.status(500).json({
-      error: 'Mail relay missing GMAIL_USER or GMAIL_PASS environment variables.'
+      error: 'Mail relay missing BREVO_API_KEY or GMAIL_USER/GMAIL_PASS environment variables.'
     });
   }
 
@@ -98,57 +101,94 @@ app.post('/send-otp', async (req, res) => {
     `
   };
 
-  try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`[SMTP SUCCESS] Verification code ${code} sent to ${to}: ${info.messageId}`);
-    return res.json({ success: true, messageId: info.messageId, provider: 'gmail_smtp' });
-  } catch (err) {
-    console.warn(`[SMTP NOTICE] Direct SMTP delivery failed/timed out (${err.message}). Trying HTTPS delivery fallback...`);
-
-    if (resendApiKey) {
-      try {
-        const resendRes = await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${resendApiKey.trim()}`,
-            'Content-Type': 'application/json'
+  // 1. Try Brevo HTTPS API (Recommended for Cloud Hosting like Render - NEVER blocked by port restrictions)
+  if (brevoApiKey) {
+    try {
+      const senderEmail = gmailUser || 'osiallj@gmail.com';
+      const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'api-key': brevoApiKey.trim(),
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          sender: {
+            name: 'ISUFST Campus Gate Security',
+            email: senderEmail
           },
-          body: JSON.stringify({
-            from: 'ISUFST Gate Security <onboarding@resend.dev>',
-            to: [to],
-            subject: mailOptions.subject,
-            html: mailOptions.html
-          })
-        });
-        const resendData = await resendRes.json();
-        if (resendRes.ok) {
-          console.log(`[HTTPS RESEND SUCCESS] Delivered to ${to}: ${resendData.id}`);
-          return res.json({ success: true, messageId: resendData.id, provider: 'resend_https' });
-        } else {
-          console.error('[HTTPS RESEND ERROR]:', resendData);
-        }
-      } catch (fetchErr) {
-        console.error('[HTTPS FETCH ERROR]:', fetchErr);
+          to: [{ email: to }],
+          subject: mailOptions.subject,
+          htmlContent: mailOptions.html
+        })
+      });
+      const brevoData = await brevoRes.json();
+      if (brevoRes.ok) {
+        console.log(`[BREVO HTTPS SUCCESS] Delivered to ${to}: ${brevoData.messageId}`);
+        return res.json({ success: true, messageId: brevoData.messageId, provider: 'brevo_https' });
+      } else {
+        console.warn('[BREVO ERROR]:', brevoData);
       }
+    } catch (brevoErr) {
+      console.warn('[BREVO FETCH ERROR]:', brevoErr.message);
     }
-
-    res.status(500).json({ error: err.toString() });
   }
+
+  // 2. Try Direct Gmail SMTP (Works on Local PC / Unblocked environments)
+  if (gmailUser && gmailPass) {
+    try {
+      const info = await transporter.sendMail(mailOptions);
+      console.log(`[SMTP SUCCESS] Verification code ${code} sent to ${to}: ${info.messageId}`);
+      return res.json({ success: true, messageId: info.messageId, provider: 'gmail_smtp' });
+    } catch (err) {
+      console.warn(`[SMTP NOTICE] Direct SMTP delivery failed/timed out (${err.message}). Trying Resend fallback...`);
+    }
+  }
+
+  // 3. Try Resend HTTPS API fallback
+  if (resendApiKey) {
+    try {
+      const resendRes = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${resendApiKey.trim()}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          from: 'ISUFST Gate Security <onboarding@resend.dev>',
+          to: [to],
+          subject: mailOptions.subject,
+          html: mailOptions.html
+        })
+      });
+      const resendData = await resendRes.json();
+      if (resendRes.ok) {
+        console.log(`[HTTPS RESEND SUCCESS] Delivered to ${to}: ${resendData.id}`);
+        return res.json({ success: true, messageId: resendData.id, provider: 'resend_https' });
+      } else {
+        console.error('[HTTPS RESEND ERROR]:', resendData);
+      }
+    } catch (fetchErr) {
+      console.error('[HTTPS FETCH ERROR]:', fetchErr);
+    }
+  }
+
+  res.status(500).json({ error: 'All email delivery providers failed or timed out.' });
 });
 
 app.get('/', (req, res) => {
   res.json({
     status: 'ok',
     service: 'Plakado ISUFST Mail Relay',
-    connected: Boolean(gmailUser && gmailPass),
-    hasUser: Boolean(gmailUser),
-    hasPass: Boolean(gmailPass),
-    userEmail: gmailUser ? `${gmailUser.substring(0, 3)}***@gmail.com` : null,
-    envKeys: Object.keys(process.env).filter(k => !k.includes('SECRET') && !k.includes('PASS') && !k.includes('KEY'))
+    hasBrevo: Boolean(brevoApiKey),
+    hasGmail: Boolean(gmailUser && gmailPass),
+    hasResend: Boolean(resendApiKey),
+    connected: Boolean(brevoApiKey || (gmailUser && gmailPass)),
+    userEmail: gmailUser ? `${gmailUser.substring(0, 3)}***@gmail.com` : null
   });
 });
 
 const PORT = process.env.PORT || 5050;
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Plakado Gmail SMTP Relay active on port ${PORT}`);
+  console.log(`Plakado Gmail & Brevo Mail Relay active on port ${PORT}`);
 });
