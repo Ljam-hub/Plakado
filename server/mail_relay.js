@@ -17,20 +17,26 @@ let gmailPass = process.env.GMAIL_PASS || process.env.gmail_pass || process.env.
 if (gmailUser) gmailUser = gmailUser.trim().replace(/^["']|["']$/g, '');
 if (gmailPass) gmailPass = gmailPass.trim().replace(/^["']|["']$/g, '').replace(/\s+/g, '');
 
+let resendApiKey = process.env.RESEND_API_KEY;
+
 const credsPath = path.join(__dirname, 'credentials.json');
 if (fs.existsSync(credsPath)) {
   try {
     const creds = JSON.parse(fs.readFileSync(credsPath, 'utf8'));
     gmailUser = gmailUser || creds.user;
     gmailPass = gmailPass || creds.pass;
+    resendApiKey = resendApiKey || creds.resendApiKey;
   } catch (err) {
     console.warn('[Credentials Warning] Could not parse credentials.json:', err.message);
   }
 }
 
-// Configure official Gmail SMTP transporter with Google App Password
+// Configure official Gmail SMTP transporter with Google App Password & fast timeouts
 const transporter = nodemailer.createTransport({
   service: 'gmail',
+  connectionTimeout: 4000,
+  greetingTimeout: 4000,
+  socketTimeout: 4000,
   auth: {
     user: gmailUser,
     pass: gmailPass
@@ -95,9 +101,37 @@ app.post('/send-otp', async (req, res) => {
   try {
     const info = await transporter.sendMail(mailOptions);
     console.log(`[SMTP SUCCESS] Verification code ${code} sent to ${to}: ${info.messageId}`);
-    res.json({ success: true, messageId: info.messageId });
+    return res.json({ success: true, messageId: info.messageId, provider: 'gmail_smtp' });
   } catch (err) {
-    console.error(`[SMTP ERROR] Delivery failed to ${to}:`, err);
+    console.warn(`[SMTP NOTICE] Direct SMTP delivery failed/timed out (${err.message}). Trying HTTPS delivery fallback...`);
+
+    if (resendApiKey) {
+      try {
+        const resendRes = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${resendApiKey.trim()}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            from: 'ISUFST Gate Security <onboarding@resend.dev>',
+            to: [to],
+            subject: mailOptions.subject,
+            html: mailOptions.html
+          })
+        });
+        const resendData = await resendRes.json();
+        if (resendRes.ok) {
+          console.log(`[HTTPS RESEND SUCCESS] Delivered to ${to}: ${resendData.id}`);
+          return res.json({ success: true, messageId: resendData.id, provider: 'resend_https' });
+        } else {
+          console.error('[HTTPS RESEND ERROR]:', resendData);
+        }
+      } catch (fetchErr) {
+        console.error('[HTTPS FETCH ERROR]:', fetchErr);
+      }
+    }
+
     res.status(500).json({ error: err.toString() });
   }
 });
