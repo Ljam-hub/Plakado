@@ -13,6 +13,7 @@ import '../widgets/plate_display_widget.dart';
 import 'register_vehicle_view.dart';
 import 'digital_gate_pass_view.dart';
 import 'edit_profile_view.dart';
+import '../common/app_install_dialog.dart';
 
 class StudentFacultyDashboardView extends StatelessWidget {
   const StudentFacultyDashboardView({super.key});
@@ -70,6 +71,14 @@ class StudentFacultyDashboardView extends StatelessWidget {
           ],
         ),
         actions: [
+          IconButton(
+            tooltip: 'Get Mobile App / Scan QR',
+            icon: const Icon(Icons.qr_code_2),
+            onPressed: () => showDialog(
+              context: context,
+              builder: (_) => const AppInstallDialog(),
+            ),
+          ),
           IconButton(
             tooltip: 'Theme: ${themeCtrl.themeModeName} (Click to switch)',
             icon: Icon(

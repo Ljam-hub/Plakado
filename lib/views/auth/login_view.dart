@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../controllers/auth_controller.dart';
 import '../../models/user_profile.dart';
+import '../common/app_install_dialog.dart';
 import 'otp_verification_dialog.dart';
 
 class LoginView extends StatefulWidget {
@@ -81,6 +82,24 @@ class _LoginViewState extends State<LoginView> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        actions: [
+          TextButton.icon(
+            onPressed: () => showDialog(
+              context: context,
+              builder: (_) => const AppInstallDialog(),
+            ),
+            icon: const Icon(Icons.install_mobile, size: 18),
+            label: const Text(
+              'Install App / QR',
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -239,6 +258,40 @@ class _LoginViewState extends State<LoginView> {
                           label: Text(
                             auth.isLoading ? 'Authenticating...' : 'Send Code & Verify Account',
                             style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 15),
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        Row(
+                          children: [
+                            const Expanded(child: Divider()),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              child: Text(
+                                'MOBILE ACCESS',
+                                style: GoogleFonts.inter(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
+                                  letterSpacing: 1.2,
+                                ),
+                              ),
+                            ),
+                            const Expanded(child: Divider()),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        OutlinedButton.icon(
+                          onPressed: () => showDialog(
+                            context: context,
+                            builder: (_) => const AppInstallDialog(),
+                          ),
+                          icon: const Icon(Icons.qr_code_2_rounded, color: Color(0xFF2563EB)),
+                          label: const Text('Install App / Scan QR Code'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                         ),
                       ],

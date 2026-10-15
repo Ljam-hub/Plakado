@@ -13,6 +13,7 @@ import 'visitor_registration_view.dart';
 import 'gate_logs_view.dart';
 import 'registered_vehicles_directory.dart';
 import '../portal/edit_profile_view.dart';
+import '../common/app_install_dialog.dart';
 
 class SecurityDashboardView extends StatelessWidget {
   const SecurityDashboardView({super.key});
@@ -53,6 +54,14 @@ class SecurityDashboardView extends StatelessWidget {
           ],
         ),
         actions: [
+          IconButton(
+            tooltip: 'Get Mobile App / Scan QR',
+            icon: const Icon(Icons.qr_code_2),
+            onPressed: () => showDialog(
+              context: context,
+              builder: (_) => const AppInstallDialog(),
+            ),
+          ),
           Consumer<ThemeController>(
             builder: (context, themeCtrl, _) {
               final isDark = themeCtrl.isDarkMode(context);
