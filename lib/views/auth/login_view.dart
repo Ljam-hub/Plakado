@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../controllers/auth_controller.dart';
-import '../../controllers/theme_controller.dart';
 import '../../models/user_profile.dart';
 import 'otp_verification_dialog.dart';
 
@@ -79,29 +78,13 @@ class _LoginViewState extends State<LoginView> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthController>();
-    final themeCtrl = context.watch<ThemeController>();
-    final isDark = themeCtrl.isDarkMode(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       body: SafeArea(
-        child: Stack(
-          children: [
-            Positioned(
-              top: 12,
-              right: 16,
-              child: IconButton(
-                tooltip: 'Theme: ${themeCtrl.themeModeName} (Click to switch)',
-                icon: Icon(
-                  themeCtrl.themeMode == ThemeMode.system
-                      ? Icons.brightness_auto
-                      : (isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
-                ),
-                onPressed: () => themeCtrl.cycleTheme(),
-              ),
-            ),
-            Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 480),
               child: Card(
@@ -266,11 +249,9 @@ class _LoginViewState extends State<LoginView> {
             ),
           ),
         ),
-      ],
-    ),
-  ),
-);
-}
+      ),
+    );
+  }
 
   Widget _buildRoleTab(BuildContext context, UserRole role, String label) {
     final isSelected = _selectedRole == role;
