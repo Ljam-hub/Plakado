@@ -1,0 +1,39 @@
+{
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "plakado-security-2026",
+          "appId": "1:520896885769:android:ec9afd7f361769b46934d8",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "plakado-security-2026",
+          "configurations": {
+            "android": "1:520896885769:android:ec9afd7f361769b46934d8",
+            "web": "1:520896885769:web:c6f1c605b53482be6934d8"
+          }
+        }
+      }
+    }
+  }
+}

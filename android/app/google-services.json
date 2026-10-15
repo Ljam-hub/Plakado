@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "520896885769",
+    "project_id": "plakado-security-2026",
+    "storage_bucket": "plakado-security-2026.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:520896885769:android:ec9afd7f361769b46934d8",
+        "android_client_info": {
+          "package_name": "com.plakado.app.plakado"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBQ88SULau3-tmsSEdcEsQXUnk74cnGSYk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,439 @@
+rules_version = '2';
+
+// ===============================================================
+// Assumed Data Model & Architecture Specification
+// ===============================================================
+//
+// Application: Plakado - Automatic License Plate Recognition (ALPR) & Campus Gate Security
+// Project ID: plakado-security-2026
+//
+// 1. Collection: users/{userId}
+//    Document ID: userId (matches Firebase Auth UID)
+//    Fields:
+//      - id: string (required, 1-64 chars) - unique user ID matching document ID
+//      - name: string (required, 1-100 chars) - user full name
+//      - email: string (required, 3-100 chars, RFC 5322 regex) - institutional / personal email
+//      - role: string (required, enum: 'student', 'faculty', 'security', 'admin')
+//      - department: string (required, 1-100 chars) - college, academic department, or security unit
+//      - idNumber: string (required, 1-50 chars) - institutional ID number (student ID, employee ID, badge ID)
+//      - contactNumber: string (optional, 0-30 chars, nullable) - mobile or landline contact
+//      - photoUrl: string (optional, 0-500 chars, nullable, URI) - profile photo URL
+//
+// 2. Collection: vehicles/{vehicleId}
+//    Document ID: vehicleId (UUID or system-generated ID)
+//    Fields:
+//      - id: string (required, 1-64 chars) - registration ID
+//      - plateNumber: string (required, 1-20 chars) - formatted plate (e.g. 'ABC 1234')
+//      - normalizedPlate: string (required, 1-20 chars) - stripped uppercase plate (e.g. 'ABC1234')
+//      - ownerId: string (required, 1-64 chars) - owner user UID
+//      - ownerName: string (required, 1-100 chars) - owner full name
+//      - ownerEmail: string (required, 3-100 chars, RFC 5322 regex) - owner institutional email
+//      - ownerRole: string (required, enum: 'student', 'faculty', 'security', 'admin')
+//      - department: string (required, 1-100 chars) - academic or office department
+//      - idNumber: string (required, 1-50 chars) - student / faculty ID
+//      - vehicleType: string (required, 1-50 chars) - vehicle category (Car, Motorcycle, SUV, etc.)
+//      - make: string (required, 1-50 chars) - brand / manufacturer (Toyota, Honda, etc.)
+//      - model: string (required, 1-50 chars) - vehicle model
+//      - color: string (required, 1-50 chars) - body color
+//      - status: string (required, enum: 'approved', 'pending', 'rejected', 'expired')
+//      - registeredAt: string (ISO 8601) or timestamp (required) - registration creation timestamp
+//      - expiresAt: string (ISO 8601) or timestamp (optional, nullable) - gate pass expiry timestamp
+//      - rfidTag: string (optional, 0-50 chars, nullable) - optional physical RFID transponder ID
+//
+// 3. Collection: gate_logs/{logId}
+//    Document ID: logId (UUID or OCR event record ID)
+//    Fields:
+//      - id: string (required, 1-64 chars) - event identifier
+//      - plateNumber: string (required, 1-20 chars) - captured plate string
+//      - normalizedPlate: string (required, 1-20 chars) - normalized plate for ALPR queries
+//      - timestamp: string (ISO 8601) or timestamp (required) - passage timestamp
+//      - logType: string (required, enum: 'entry', 'exit') - barrier direction
+//      - accessStatus: string (required, enum: 'authorized', 'visitor', 'denied')
+//      - driverName: string (required, 1-100 chars) - driver / owner / visitor name
+//      - userRole: string (optional, nullable, enum: 'student', 'faculty', 'security', 'admin')
+//      - department: string (optional, 0-100 chars, nullable) - college / unit
+//      - vehicleInfo: string (optional, 0-150 chars, nullable) - vehicle summary description
+//      - gateName: string (optional, 0-50 chars, nullable) - gate point (e.g., 'Main Gate', 'Gate 2')
+//      - officerNotes: string (optional, 0-500 chars, nullable) - security officer remark
+//      - ownerId: string (optional, 0-64 chars, nullable) - owner UID for portal query filtering
+//      - driverEmail: string (optional, 0-100 chars, nullable) - driver email for student/faculty lookup
+//      - userId: string (optional, 0-64 chars, nullable) - user UID reference
+//
+// 4. Collection: visitors/{visitorId}
+//    Document ID: visitorId (UUID or visitor log ID)
+//    Fields:
+//      - id: string (required, 1-64 chars) - visitor record identifier
+//      - plateNumber: string (required, 1-20 chars) - guest vehicle plate number
+//      - visitorName: string (required, 1-100 chars) - visitor guest full name
+//      - contactNumber: string (required, 1-30 chars) - visitor phone number
+//      - purpose: string (required, 1-200 chars) - visit purpose (e.g. delivery, consultation)
+//      - destinationBuilding: string (required, 1-100 chars) - campus destination building/office
+//      - passNumber: string (required, 1-50 chars) - physical visitor pass badge number
+//      - idPresented: string (optional, 0-100 chars, nullable) - type of ID presented (e.g. Driver's License)
+//      - timeIn: string (ISO 8601) or timestamp (required) - entry barrier timestamp
+//      - timeOut: string (ISO 8601) or timestamp (optional, nullable) - exit barrier timestamp
+//
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Global Helper Functions
+    // ===============================================================
+
+    /// Verifies that the client request has an authenticated session
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    /// Verifies that the caller's Auth UID matches the document owner UID
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    /// Validates email address format against standard RFC 5322 structure
+    function isValidEmail(email) {
+      return email is string &&
+        email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    /// Validates ISO 8601 extended date string (YYYY-MM-DDTHH:MM:SS...)
+    function isValidDateString(dateStr) {
+      return dateStr is string &&
+        dateStr.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*$");
+    }
+
+    /// Validates that specified sensitive/immutable keys have not been modified during update
+    function areImmutableFieldsUnchanged(fields) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields);
+    }
+
+    // ===============================================================
+    // Role-Based Access Control (RBAC) Helpers
+    // ===============================================================
+
+    /// Fallback for designated bootstrap administrator emails during bootstrapping
+    function isBootstrapAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.email in [
+          'admin@isufst.edu.ph',
+          'plakado.admin@isufst.edu.ph',
+          'admin@plakado.com'
+        ]
+      );
+    }
+
+    /// Extracts role field from existing user profile document in Firestore
+    function getUserDocRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    /// Checks for role claims in Firebase Auth Custom Token Claims
+    function hasCustomRole(roleName) {
+      return isAuthenticated() && (
+        (request.auth.token.role == roleName) ||
+        (roleName == 'admin' && request.auth.token.admin == true) ||
+        (roleName == 'security' && request.auth.token.security == true) ||
+        (request.auth.token.roles is list && roleName in request.auth.token.roles)
+      );
+    }
+
+    /// Checks for role assignments verified through Firestore user document
+    function hasDocRole(roleName) {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        getUserDocRole() == roleName;
+    }
+
+    /// Evaluates whether current user has administrator authority
+    function isAdmin() {
+      return hasCustomRole('admin') ||
+        isBootstrapAdmin() ||
+        hasDocRole('admin');
+    }
+
+    /// Evaluates whether current user has security officer authority
+    function isSecurity() {
+      return hasCustomRole('security') ||
+        hasDocRole('security');
+    }
+
+    /// Evaluates whether current user is either security officer or administrator
+    function isSecurityOrAdmin() {
+      return isAdmin() || isSecurity();
+    }
+
+    // ===============================================================
+    // Domain Validator Functions (Enforced on Create & Update)
+    // ===============================================================
+
+    /// Validates structural integrity, field bounds, and types for User Profiles
+    function isValidUser(data) {
+      return data.keys().hasAll([
+          'id', 'name', 'email', 'role', 'department', 'idNumber'
+        ]) &&
+        data.keys().hasOnly([
+          'id', 'name', 'email', 'role', 'department', 'idNumber',
+          'contactNumber', 'photoUrl'
+        ]) &&
+        data.id is string && data.id.size() >= 1 && data.id.size() <= 64 &&
+        data.name is string && data.name.size() >= 1 && data.name.size() <= 100 &&
+        data.email is string && isValidEmail(data.email) && data.email.size() <= 100 &&
+        data.role is string && data.role in ['student', 'faculty', 'security', 'admin'] &&
+        data.department is string && data.department.size() >= 1 && data.department.size() <= 100 &&
+        data.idNumber is string && data.idNumber.size() >= 1 && data.idNumber.size() <= 50 &&
+        (!('contactNumber' in data) || data.contactNumber == null ||
+          (data.contactNumber is string && data.contactNumber.size() <= 30)) &&
+        (!('photoUrl' in data) || data.photoUrl == null ||
+          (data.photoUrl is string && data.photoUrl.size() <= 500 &&
+            (data.photoUrl.matches("^https?://.*") || data.photoUrl.matches("^gs://.*") || data.photoUrl == "")));
+    }
+
+    /// Validates structural integrity, field bounds, and types for Vehicle Registrations
+    function isValidVehicle(data) {
+      return data.keys().hasAll([
+          'id', 'plateNumber', 'normalizedPlate', 'ownerId', 'ownerName',
+          'ownerEmail', 'ownerRole', 'department', 'idNumber', 'vehicleType',
+          'make', 'model', 'color', 'status', 'registeredAt'
+        ]) &&
+        data.keys().hasOnly([
+          'id', 'plateNumber', 'normalizedPlate', 'ownerId', 'ownerName',
+          'ownerEmail', 'ownerRole', 'department', 'idNumber', 'vehicleType',
+          'make', 'model', 'color', 'status', 'registeredAt', 'expiresAt', 'rfidTag'
+        ]) &&
+        data.id is string && data.id.size() >= 1 && data.id.size() <= 64 &&
+        data.plateNumber is string && data.plateNumber.size() >= 1 && data.plateNumber.size() <= 20 &&
+        data.normalizedPlate is string && data.normalizedPlate.size() >= 1 && data.normalizedPlate.size() <= 20 &&
+        data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 64 &&
+        data.ownerName is string && data.ownerName.size() >= 1 && data.ownerName.size() <= 100 &&
+        data.ownerEmail is string && isValidEmail(data.ownerEmail) && data.ownerEmail.size() <= 100 &&
+        data.ownerRole is string && data.ownerRole in ['student', 'faculty', 'security', 'admin'] &&
+        data.department is string && data.department.size() >= 1 && data.department.size() <= 100 &&
+        data.idNumber is string && data.idNumber.size() >= 1 && data.idNumber.size() <= 50 &&
+        data.vehicleType is string && data.vehicleType.size() >= 1 && data.vehicleType.size() <= 50 &&
+        data.make is string && data.make.size() >= 1 && data.make.size() <= 50 &&
+        data.model is string && data.model.size() >= 1 && data.model.size() <= 50 &&
+        data.color is string && data.color.size() >= 1 && data.color.size() <= 50 &&
+        data.status is string && data.status in ['approved', 'pending', 'rejected', 'expired'] &&
+        ((data.registeredAt is string && isValidDateString(data.registeredAt)) || data.registeredAt is timestamp) &&
+        (!('expiresAt' in data) || data.expiresAt == null ||
+          ((data.expiresAt is string && isValidDateString(data.expiresAt)) || data.expiresAt is timestamp)) &&
+        (!('rfidTag' in data) || data.rfidTag == null ||
+          (data.rfidTag is string && data.rfidTag.size() <= 50));
+    }
+
+    /// Validates structural integrity, field bounds, and types for Gate Activity Logs
+    function isValidGateLog(data) {
+      return data.keys().hasAll([
+          'id', 'plateNumber', 'normalizedPlate', 'timestamp',
+          'logType', 'accessStatus', 'driverName'
+        ]) &&
+        data.keys().hasOnly([
+          'id', 'plateNumber', 'normalizedPlate', 'timestamp', 'logType',
+          'accessStatus', 'driverName', 'userRole', 'department',
+          'vehicleInfo', 'gateName', 'officerNotes', 'ownerId', 'driverEmail', 'userId'
+        ]) &&
+        data.id is string && data.id.size() >= 1 && data.id.size() <= 64 &&
+        data.plateNumber is string && data.plateNumber.size() >= 1 && data.plateNumber.size() <= 20 &&
+        data.normalizedPlate is string && data.normalizedPlate.size() >= 1 && data.normalizedPlate.size() <= 20 &&
+        ((data.timestamp is string && isValidDateString(data.timestamp)) || data.timestamp is timestamp) &&
+        data.logType is string && data.logType in ['entry', 'exit'] &&
+        data.accessStatus is string && data.accessStatus in ['authorized', 'visitor', 'denied'] &&
+        data.driverName is string && data.driverName.size() >= 1 && data.driverName.size() <= 100 &&
+        (!('userRole' in data) || data.userRole == null ||
+          (data.userRole is string && data.userRole in ['student', 'faculty', 'security', 'admin'])) &&
+        (!('department' in data) || data.department == null ||
+          (data.department is string && data.department.size() <= 100)) &&
+        (!('vehicleInfo' in data) || data.vehicleInfo == null ||
+          (data.vehicleInfo is string && data.vehicleInfo.size() <= 150)) &&
+        (!('gateName' in data) || data.gateName == null ||
+          (data.gateName is string && data.gateName.size() <= 50)) &&
+        (!('officerNotes' in data) || data.officerNotes == null ||
+          (data.officerNotes is string && data.officerNotes.size() <= 500)) &&
+        (!('ownerId' in data) || data.ownerId == null ||
+          (data.ownerId is string && data.ownerId.size() <= 64)) &&
+        (!('driverEmail' in data) || data.driverEmail == null ||
+          (data.driverEmail is string && isValidEmail(data.driverEmail) && data.driverEmail.size() <= 100)) &&
+        (!('userId' in data) || data.userId == null ||
+          (data.userId is string && data.userId.size() <= 64));
+    }
+
+    /// Validates structural integrity, field bounds, and types for Visitor Pass Registrations
+    function isValidVisitor(data) {
+      return data.keys().hasAll([
+          'id', 'plateNumber', 'visitorName', 'contactNumber',
+          'purpose', 'destinationBuilding', 'passNumber', 'timeIn'
+        ]) &&
+        data.keys().hasOnly([
+          'id', 'plateNumber', 'visitorName', 'contactNumber', 'purpose',
+          'destinationBuilding', 'passNumber', 'idPresented', 'timeIn', 'timeOut'
+        ]) &&
+        data.id is string && data.id.size() >= 1 && data.id.size() <= 64 &&
+        data.plateNumber is string && data.plateNumber.size() >= 1 && data.plateNumber.size() <= 20 &&
+        data.visitorName is string && data.visitorName.size() >= 1 && data.visitorName.size() <= 100 &&
+        data.contactNumber is string && data.contactNumber.size() >= 1 && data.contactNumber.size() <= 30 &&
+        data.purpose is string && data.purpose.size() >= 1 && data.purpose.size() <= 200 &&
+        data.destinationBuilding is string && data.destinationBuilding.size() >= 1 && data.destinationBuilding.size() <= 100 &&
+        data.passNumber is string && data.passNumber.size() >= 1 && data.passNumber.size() <= 50 &&
+        (!('idPresented' in data) || data.idPresented == null ||
+          (data.idPresented is string && data.idPresented.size() <= 100)) &&
+        ((data.timeIn is string && isValidDateString(data.timeIn)) || data.timeIn is timestamp) &&
+        (!('timeOut' in data) || data.timeOut == null ||
+          ((data.timeOut is string && isValidDateString(data.timeOut)) || data.timeOut is timestamp));
+    }
+
+    // ===============================================================
+    // Collection Security Rules
+    // ===============================================================
+
+    // ---------------------------------------------------------------
+    // 1. Users Collection
+    // ---------------------------------------------------------------
+    match /users/{userId} {
+      // Read: Allowed for authenticated users (for campus directory & guard verification)
+      allow read: if isAuthenticated();
+
+      // Create:
+      // - Administrators can create user profiles with any valid role
+      // - Regular authenticated users can register their own profile, but cannot self-assign privileged roles
+      allow create: if isAuthenticated() &&
+        isValidUser(request.resource.data) &&
+        (
+          isAdmin() ||
+          (
+            isOwner(userId) &&
+            request.resource.data.id == userId &&
+            request.resource.data.role in ['student', 'faculty']
+          )
+        );
+
+      // Update:
+      // - Administrators can update any profile and role
+      // - Security officers can update profile details (e.g., ID verification) but cannot grant admin role
+      // - Profile owners can update their own personal info, but CANNOT modify id or role
+      allow update: if isAuthenticated() &&
+        isValidUser(request.resource.data) &&
+        (
+          isAdmin() ||
+          (
+            isSecurity() &&
+            request.resource.data.role != 'admin' &&
+            areImmutableFieldsUnchanged(['id'])
+          ) ||
+          (
+            isOwner(userId) &&
+            areImmutableFieldsUnchanged(['id', 'role'])
+          )
+        );
+
+      // Delete: Strictly restricted to administrators
+      allow delete: if isAdmin();
+    }
+
+    // ---------------------------------------------------------------
+    // 2. Vehicles Collection
+    // ---------------------------------------------------------------
+    match /vehicles/{vehicleId} {
+      // Read: Allowed for authenticated users (guards query by normalizedPlate; owners view their fleet)
+      allow read: if isAuthenticated();
+
+      // Create:
+      // - Security officers or admins can register vehicles for any campus member
+      // - Authenticated users can register their own vehicle, binding ownerId to their Auth UID
+      allow create: if isAuthenticated() &&
+        isValidVehicle(request.resource.data) &&
+        (
+          isSecurityOrAdmin() ||
+          (
+            request.resource.data.ownerId == request.auth.uid &&
+            (
+              request.auth.token.email == null ||
+              request.resource.data.ownerEmail == request.auth.token.email
+            ) &&
+            request.resource.data.status in ['approved', 'pending']
+          )
+        );
+
+      // Update:
+      // - Security officers or admins can update status, expiration, or vehicle details (protecting original id & creation date)
+      // - Vehicle owners can update their vehicle details, but CANNOT alter ownership or approval status
+      allow update: if isAuthenticated() &&
+        isValidVehicle(request.resource.data) &&
+        (
+          (
+            isSecurityOrAdmin() &&
+            areImmutableFieldsUnchanged(['id', 'registeredAt'])
+          ) ||
+          (
+            resource.data.ownerId == request.auth.uid &&
+            areImmutableFieldsUnchanged(['id', 'ownerId', 'ownerEmail', 'status', 'registeredAt'])
+          )
+        );
+
+      // Delete: Permitted only for the vehicle owner or an administrator
+      allow delete: if isAuthenticated() &&
+        (
+          isAdmin() ||
+          (resource.data.ownerId == request.auth.uid)
+        );
+    }
+
+    // ---------------------------------------------------------------
+    // 3. Gate Logs Collection
+    // ---------------------------------------------------------------
+    match /gate_logs/{logId} {
+      // Read:
+      // - Security guards and admins have unrestricted read access across all campus activity logs
+      // - Students and faculty can view logs corresponding to their own user identity or vehicle
+      allow read: if isAuthenticated() &&
+        (
+          isSecurityOrAdmin() ||
+          (
+            ('ownerId' in resource.data && resource.data.ownerId == request.auth.uid) ||
+            ('driverEmail' in resource.data && resource.data.driverEmail == request.auth.token.email) ||
+            ('userId' in resource.data && resource.data.userId == request.auth.uid)
+          )
+        );
+
+      // Create: Security officers or administrators only (automatic ALPR OCR or guard logging)
+      allow create: if isSecurityOrAdmin() &&
+        isValidGateLog(request.resource.data);
+
+      // Update: Security officers or administrators only (guards appending notes; identity remains immutable)
+      allow update: if isSecurityOrAdmin() &&
+        isValidGateLog(request.resource.data) &&
+        areImmutableFieldsUnchanged(['id', 'plateNumber', 'normalizedPlate', 'timestamp', 'logType']);
+
+      // Delete: Strictly restricted to administrators for audit retention compliance
+      allow delete: if isAdmin();
+    }
+
+    // ---------------------------------------------------------------
+    // 4. Visitors Collection
+    // ---------------------------------------------------------------
+    match /visitors/{visitorId} {
+      // Read: Security guards and administrators only
+      allow read: if isSecurityOrAdmin();
+
+      // Create: Security guards and administrators only
+      allow create: if isSecurityOrAdmin() &&
+        isValidVisitor(request.resource.data);
+
+      // Update: Security guards and administrators only (e.g., logging visitor exit timestamp)
+      allow update: if isSecurityOrAdmin() &&
+        isValidVisitor(request.resource.data) &&
+        areImmutableFieldsUnchanged(['id', 'plateNumber', 'timeIn']);
+
+      // Delete: Strictly restricted to administrators
+      allow delete: if isAdmin();
+    }
+
+    // ---------------------------------------------------------------
+    // Root Fallback - Explicit Default Deny
+    // ---------------------------------------------------------------
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
