@@ -31,12 +31,12 @@ if (fs.existsSync(credsPath)) {
   }
 }
 
-// Configure official Gmail SMTP transporter with Google App Password & fast timeouts
+// Configure official Gmail SMTP transporter with Google App Password on Port 587 (STARTTLS)
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  connectionTimeout: 4000,
-  greetingTimeout: 4000,
-  socketTimeout: 4000,
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false,
+  requireTLS: true,
   auth: {
     user: gmailUser,
     pass: gmailPass
