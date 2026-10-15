@@ -1,11 +1,11 @@
 {
-    "name": "plakado",
-    "short_name": "plakado",
+    "name": "Plakado - Campus Gate Security & ALPR",
+    "short_name": "Plakado",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#0f172a",
+    "theme_color": "#1e3a8a",
+    "description": "Automatic License Plate Recognition and Campus Gate Security System for ISUFST.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

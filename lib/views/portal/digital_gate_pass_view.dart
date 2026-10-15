@@ -64,7 +64,15 @@ class DigitalGatePassView extends StatelessWidget {
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.school, color: Colors.white, size: 28),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.asset(
+                              'assets/images/plakado_logo.png',
+                              width: 32,
+                              height: 32,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(

@@ -119,23 +119,26 @@ class _LoginViewState extends State<LoginView> {
                         // App Brand Header
                         Center(
                           child: Container(
-                            width: 64,
-                            height: 64,
+                            width: 84,
+                            height: 84,
                             decoration: BoxDecoration(
-                              color: const Color(0xFF2563EB),
-                              borderRadius: BorderRadius.circular(18),
+                              borderRadius: BorderRadius.circular(22),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFF2563EB).withValues(alpha: 0.35),
-                                  blurRadius: 16,
-                                  offset: const Offset(0, 6),
+                                  color: const Color(0xFF1E3A8A).withValues(alpha: 0.35),
+                                  blurRadius: 18,
+                                  offset: const Offset(0, 8),
                                 ),
                               ],
                             ),
-                            child: const Icon(
-                              Icons.car_crash_rounded,
-                              color: Colors.white,
-                              size: 36,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(22),
+                              child: Image.asset(
+                                'assets/images/plakado_logo.png',
+                                width: 84,
+                                height: 84,
+                                fit: BoxFit.cover,
+                              ),
                             ),
                           ),
                         ),
