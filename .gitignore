@@ -41,6 +41,8 @@ migrate_working_dir/
 # Symbolication & Obfuscation
 app.*.symbols
 app.*.map.json
+*.apk
+/apk/
 
 # Node.js & Server
 node_modules/
