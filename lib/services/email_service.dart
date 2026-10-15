@@ -18,16 +18,40 @@ class EmailService {
   // Configured via compile-time environment or CI/CD: --dart-define=RESEND_API_KEY=re_xxx
   static const String _resendApiKey = String.fromEnvironment('RESEND_API_KEY', defaultValue: '');
   static const String _fromAddress = 'ISUFST Gate Security <onboarding@resend.dev>';
+  static const String _cloudSmtpRelayUrl = 'https://plakado-mail.onrender.com/send-otp';
   static const String _localSmtpRelayUrl = 'http://localhost:5050/send-otp';
 
-  /// Sends the 6-digit verification code using Gmail SMTP (osiallj@gmail.com) with Resend fallback
+  /// Sends the 6-digit verification code using Gmail SMTP (osiallj@gmail.com) via Render Cloud Relay
   static Future<EmailDispatchResult> sendVerificationOtp({
     required String recipientEmail,
     required String code,
   }) async {
     final cleanRecipient = recipientEmail.trim().toLowerCase();
 
-    // 1. Try Gmail SMTP Relay (sends to ANY address from osiallj@gmail.com)
+    // 1. Try Live Render Cloud Relay (works worldwide 24/7)
+    try {
+      final cloudResponse = await http.post(
+        Uri.parse(_cloudSmtpRelayUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'to': cleanRecipient,
+          'code': code,
+        }),
+      ).timeout(const Duration(seconds: 10));
+
+      if (cloudResponse.statusCode >= 200 && cloudResponse.statusCode < 300) {
+        final data = jsonDecode(cloudResponse.body) as Map<String, dynamic>;
+        debugPrint('Render Cloud SMTP delivered verification code to $cleanRecipient: ${data['messageId']}');
+        return EmailDispatchResult(
+          isSuccess: true,
+          messageId: data['messageId']?.toString(),
+        );
+      }
+    } catch (e) {
+      debugPrint('Render Cloud relay note: $e (Trying local relay fallback)');
+    }
+
+    // 2. Try Localhost SMTP Relay (for local offline testing)
     try {
       final localResponse = await http.post(
         Uri.parse(_localSmtpRelayUrl),
@@ -36,18 +60,18 @@ class EmailService {
           'to': cleanRecipient,
           'code': code,
         }),
-      ).timeout(const Duration(seconds: 4));
+      ).timeout(const Duration(seconds: 3));
 
       if (localResponse.statusCode >= 200 && localResponse.statusCode < 300) {
         final data = jsonDecode(localResponse.body) as Map<String, dynamic>;
-        debugPrint('Gmail SMTP delivered verification code to $cleanRecipient: ${data['messageId']}');
+        debugPrint('Localhost Gmail SMTP delivered verification code to $cleanRecipient: ${data['messageId']}');
         return EmailDispatchResult(
           isSuccess: true,
           messageId: data['messageId']?.toString(),
         );
       }
     } catch (e) {
-      debugPrint('Gmail SMTP local relay note: $e (Trying Resend fallback)');
+      debugPrint('Local SMTP relay note: $e (Trying Resend fallback)');
     }
 
     // 2. Resend API Fallback
