@@ -40,6 +40,7 @@ class StudentFacultyDashboardView extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
+        titleSpacing: 12,
         title: Row(
           children: [
             Container(
@@ -51,22 +52,29 @@ class StudentFacultyDashboardView extends StatelessWidget {
               child: Icon(
                 user?.role == UserRole.student ? Icons.school : Icons.work,
                 color: Colors.white,
-                size: 20,
+                size: 18,
               ),
             ),
-            const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'CAMPUS PASS PORTAL',
-                  style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1.0),
-                ),
-                Text(
-                  user?.role.displayName ?? 'Student',
-                  style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
-                ),
-              ],
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Campus Pass',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w800),
+                  ),
+                  Text(
+                    user?.role.displayName ?? 'Student',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -79,14 +87,63 @@ class StudentFacultyDashboardView extends StatelessWidget {
               builder: (_) => const AppInstallDialog(),
             ),
           ),
-          IconButton(
-            tooltip: 'Theme: ${themeCtrl.themeModeName} (Click to switch)',
-            icon: Icon(
-              themeCtrl.themeMode == ThemeMode.system
-                  ? Icons.brightness_auto
-                  : (isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
-            ),
-            onPressed: () => themeCtrl.cycleTheme(),
+          Consumer<ThemeController>(
+            builder: (context, themeCtrl, _) {
+              return PopupMenuButton<ThemeMode>(
+                tooltip: 'Theme: ${themeCtrl.themeModeName}',
+                icon: Icon(
+                  themeCtrl.themeMode == ThemeMode.system
+                      ? Icons.brightness_auto
+                      : (isDark ? Icons.dark_mode_outlined : Icons.light_mode_outlined),
+                  color: isDark ? const Color(0xFFFBBF24) : const Color(0xFF2563EB),
+                ),
+                onSelected: (mode) => themeCtrl.setThemeMode(mode),
+                itemBuilder: (_) => [
+                  PopupMenuItem(
+                    value: ThemeMode.light,
+                    child: Row(
+                      children: [
+                        const Icon(Icons.light_mode_outlined, color: Colors.amber, size: 18),
+                        const SizedBox(width: 10),
+                        const Text('Light Mode'),
+                        if (themeCtrl.themeMode == ThemeMode.light) ...[
+                          const Spacer(),
+                          const Icon(Icons.check, color: Color(0xFF2563EB), size: 18),
+                        ],
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: ThemeMode.dark,
+                    child: Row(
+                      children: [
+                        const Icon(Icons.dark_mode_outlined, color: Colors.indigoAccent, size: 18),
+                        const SizedBox(width: 10),
+                        const Text('Dark Mode'),
+                        if (themeCtrl.themeMode == ThemeMode.dark) ...[
+                          const Spacer(),
+                          const Icon(Icons.check, color: Color(0xFF2563EB), size: 18),
+                        ],
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: ThemeMode.system,
+                    child: Row(
+                      children: [
+                        const Icon(Icons.brightness_auto, color: Colors.blueGrey, size: 18),
+                        const SizedBox(width: 10),
+                        const Text('System Default'),
+                        if (themeCtrl.themeMode == ThemeMode.system) ...[
+                          const Spacer(),
+                          const Icon(Icons.check, color: Color(0xFF2563EB), size: 18),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
           // Switch to Security Mode shortcut
           PopupMenuButton<UserRole>(
@@ -195,6 +252,42 @@ class StudentFacultyDashboardView extends StatelessWidget {
                               Text(
                                 user?.email ?? '',
                                 style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+                              ),
+                              const SizedBox(height: 6),
+                              InkWell(
+                                onTap: () => themeCtrl.cycleTheme(),
+                                borderRadius: BorderRadius.circular(12),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        themeCtrl.themeMode == ThemeMode.system
+                                            ? Icons.brightness_auto
+                                            : (isDark ? Icons.dark_mode_outlined : Icons.light_mode_outlined),
+                                        size: 13,
+                                        color: isDark ? const Color(0xFFFBBF24) : const Color(0xFF2563EB),
+                                      ),
+                                      const SizedBox(width: 5),
+                                      Text(
+                                        'Theme: ${themeCtrl.themeModeName}',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
                             ],
                           ),

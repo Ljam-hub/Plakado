@@ -27,6 +27,7 @@ class SecurityDashboardView extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
+        titleSpacing: 12,
         title: Row(
           children: [
             Container(
@@ -35,21 +36,28 @@ class SecurityDashboardView extends StatelessWidget {
                 color: const Color(0xFF2563EB),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.security, color: Colors.white, size: 20),
+              child: const Icon(Icons.security, color: Colors.white, size: 18),
             ),
-            const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'PLAKADO SECURITY',
-                  style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1.0),
-                ),
-                Text(
-                  '${user?.name ?? "Officer"} (${user?.idNumber ?? "Main Gate"})',
-                  style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
-                ),
-              ],
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Gate Security',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w800),
+                  ),
+                  Text(
+                    '${user?.name ?? "Officer"} (${user?.idNumber ?? "Main Gate"})',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -65,14 +73,59 @@ class SecurityDashboardView extends StatelessWidget {
           Consumer<ThemeController>(
             builder: (context, themeCtrl, _) {
               final isDark = themeCtrl.isDarkMode(context);
-              return IconButton(
-                tooltip: 'Theme: ${themeCtrl.themeModeName} (Click to switch)',
+              return PopupMenuButton<ThemeMode>(
+                tooltip: 'Theme: ${themeCtrl.themeModeName}',
                 icon: Icon(
                   themeCtrl.themeMode == ThemeMode.system
                       ? Icons.brightness_auto
-                      : (isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
+                      : (isDark ? Icons.dark_mode_outlined : Icons.light_mode_outlined),
+                  color: isDark ? const Color(0xFFFBBF24) : const Color(0xFF2563EB),
                 ),
-                onPressed: () => themeCtrl.cycleTheme(),
+                onSelected: (mode) => themeCtrl.setThemeMode(mode),
+                itemBuilder: (_) => [
+                  PopupMenuItem(
+                    value: ThemeMode.light,
+                    child: Row(
+                      children: [
+                        const Icon(Icons.light_mode_outlined, color: Colors.amber, size: 18),
+                        const SizedBox(width: 10),
+                        const Text('Light Mode'),
+                        if (themeCtrl.themeMode == ThemeMode.light) ...[
+                          const Spacer(),
+                          const Icon(Icons.check, color: Color(0xFF2563EB), size: 18),
+                        ],
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: ThemeMode.dark,
+                    child: Row(
+                      children: [
+                        const Icon(Icons.dark_mode_outlined, color: Colors.indigoAccent, size: 18),
+                        const SizedBox(width: 10),
+                        const Text('Dark Mode'),
+                        if (themeCtrl.themeMode == ThemeMode.dark) ...[
+                          const Spacer(),
+                          const Icon(Icons.check, color: Color(0xFF2563EB), size: 18),
+                        ],
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: ThemeMode.system,
+                    child: Row(
+                      children: [
+                        const Icon(Icons.brightness_auto, color: Colors.blueGrey, size: 18),
+                        const SizedBox(width: 10),
+                        const Text('System Default'),
+                        if (themeCtrl.themeMode == ThemeMode.system) ...[
+                          const Spacer(),
+                          const Icon(Icons.check, color: Color(0xFF2563EB), size: 18),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
               );
             },
           ),

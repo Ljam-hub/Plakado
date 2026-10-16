@@ -21,6 +21,7 @@ class OtpVerificationDialog extends StatefulWidget {
 
 class _OtpVerificationDialogState extends State<OtpVerificationDialog> with WidgetsBindingObserver {
   final _codeController = TextEditingController();
+  final _focusNode = FocusNode();
   bool _isSubmitting = false;
   String? _errorMessage;
   int _secondsRemaining = 60; // 60 seconds countdown
@@ -119,6 +120,7 @@ class _OtpVerificationDialogState extends State<OtpVerificationDialog> with Widg
     WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
     _codeController.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -244,48 +246,122 @@ class _OtpVerificationDialogState extends State<OtpVerificationDialog> with Widg
               ),
               const SizedBox(height: 20),
 
-              // 6-digit Code Input
-              TextField(
-                controller: _codeController,
-                autofocus: true,
-                keyboardType: TextInputType.number,
-                maxLength: 6,
-                textAlign: TextAlign.center,
-                style: GoogleFonts.robotoMono(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 10,
+              // 6-digit PIN Input Grid (Separate dedicated boxes)
+              GestureDetector(
+                onTap: () => _focusNode.requestFocus(),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Visual 6-box display
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(6, (index) {
+                        final text = _codeController.text;
+                        final isFilled = index < text.length;
+                        final isCurrent = index == text.length;
+                        final digit = isFilled ? text[index] : '';
+
+                        return Container(
+                          width: 44,
+                          height: 54,
+                          margin: const EdgeInsets.symmetric(horizontal: 4),
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? (isCurrent
+                                    ? const Color(0xFF1E3A8A).withValues(alpha: 0.35)
+                                    : const Color(0xFF1E293B))
+                                : (isCurrent
+                                    ? const Color(0xFFDBEAFE)
+                                    : const Color(0xFFF8FAFC)),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isCurrent
+                                  ? const Color(0xFF2563EB)
+                                  : (isFilled
+                                      ? const Color(0xFF3B82F6)
+                                      : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1))),
+                              width: isCurrent ? 2.0 : 1.2,
+                            ),
+                            boxShadow: isCurrent
+                                ? [
+                                    BoxShadow(
+                                      color: const Color(0xFF2563EB).withValues(alpha: 0.25),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ]
+                                : null,
+                          ),
+                          child: Center(
+                            child: isFilled
+                                ? Text(
+                                    digit,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w800,
+                                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                    ),
+                                  )
+                                : Text(
+                                    '•',
+                                    style: TextStyle(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.bold,
+                                      color: isDark ? const Color(0xFF475569) : const Color(0xFF94A3B8),
+                                    ),
+                                  ),
+                          ),
+                        );
+                      }),
+                    ),
+
+                    // Hidden transparent TextField to capture keyboard, backspaces & clipboard
+                    Positioned.fill(
+                      child: Opacity(
+                        opacity: 0.0,
+                        child: TextField(
+                          controller: _codeController,
+                          focusNode: _focusNode,
+                          autofocus: true,
+                          keyboardType: TextInputType.number,
+                          maxLength: 6,
+                          enableSuggestions: false,
+                          autocorrect: false,
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                          onChanged: (val) {
+                            setState(() => _errorMessage = null);
+                            final match = RegExp(r'\b\d{6}\b').firstMatch(val.trim());
+                            if (match != null) {
+                              final code = match.group(0)!;
+                              if (_codeController.text != code) {
+                                _codeController.text = code;
+                              }
+                              _submit();
+                            } else if (val.trim().length == 6) {
+                              _submit();
+                            }
+                          },
+                          onSubmitted: (_) => _submit(),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                decoration: InputDecoration(
-                  counterText: '',
-                  hintText: '• • • • • •',
-                  hintStyle: TextStyle(
-                    color: Colors.grey.shade400,
-                    letterSpacing: 8,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                  errorText: _errorMessage,
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.content_paste_go, color: Color(0xFF2563EB)),
-                    tooltip: 'Auto-Paste Code from Clipboard',
-                    onPressed: () => _checkAndAutoPasteClipboard(showToastOnEmpty: true),
-                  ),
-                ),
-                onChanged: (val) {
-                  final match = RegExp(r'\b\d{6}\b').firstMatch(val.trim());
-                  if (match != null) {
-                    final code = match.group(0)!;
-                    if (_codeController.text != code) {
-                      _codeController.text = code;
-                    }
-                    _submit();
-                  } else if (val.trim().length == 6) {
-                    _submit();
-                  }
-                },
-                onSubmitted: (_) => _submit(),
               ),
-              const SizedBox(height: 6),
+
+              if (_errorMessage != null) ...[
+                const SizedBox(height: 10),
+                Text(
+                  _errorMessage!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.redAccent,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 12),
 
               // Quick Auto-Paste Action Button
               Center(

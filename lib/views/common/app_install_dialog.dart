@@ -16,6 +16,7 @@ class _AppInstallDialogState extends State<AppInstallDialog> with SingleTickerPr
 
   static const String webAppUrl = 'https://plakado.web.app';
   static const String apkDownloadUrl = 'https://github.com/Ljam-hub/Plakado/releases/download/v1.0.0/Plakado.apk';
+  static const String githubReleasesUrl = 'https://github.com/Ljam-hub/Plakado/releases';
 
   @override
   void initState() {
@@ -31,15 +32,49 @@ class _AppInstallDialogState extends State<AppInstallDialog> with SingleTickerPr
 
   Future<void> _launchApkDownload() async {
     final uri = Uri.parse(apkDownloadUrl);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open download link directly. Copying URL to clipboard.')),
-        );
+    try {
+      await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+        webOnlyWindowName: '_blank',
+      );
+    } catch (_) {
+      try {
+        await launchUrl(uri, mode: LaunchMode.platformDefault);
+      } catch (e) {
+        debugPrint('Launch APK download error: $e');
       }
-      await Clipboard.setData(const ClipboardData(text: apkDownloadUrl));
+    }
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.downloading_rounded, color: Colors.white, size: 20),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text('Download initiated! Check your browser downloads.'),
+              ),
+            ],
+          ),
+          backgroundColor: Color(0xFF10B981),
+          duration: Duration(seconds: 4),
+        ),
+      );
+    }
+  }
+
+  Future<void> _openGithubReleases() async {
+    final uri = Uri.parse(githubReleasesUrl);
+    try {
+      await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+        webOnlyWindowName: '_blank',
+      );
+    } catch (e) {
+      debugPrint('Error opening releases: $e');
     }
   }
 
@@ -328,14 +363,32 @@ class _AppInstallDialogState extends State<AppInstallDialog> with SingleTickerPr
             ),
           ),
           const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: () => _copyUrl(apkDownloadUrl, 'APK Download URL'),
-            icon: const Icon(Icons.link, size: 16),
-            label: const Text('Copy Download URL'),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-              minimumSize: const Size(double.infinity, 36),
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _openGithubReleases,
+                  icon: const Icon(Icons.open_in_new, size: 15),
+                  label: const Text('Releases Page', style: TextStyle(fontSize: 12)),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                    minimumSize: const Size(0, 36),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _copyUrl(apkDownloadUrl, 'APK Download URL'),
+                  icon: const Icon(Icons.link, size: 15),
+                  label: const Text('Copy Link', style: TextStyle(fontSize: 12)),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                    minimumSize: const Size(0, 36),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
