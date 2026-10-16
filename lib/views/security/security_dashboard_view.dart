@@ -6,14 +6,12 @@ import '../../controllers/auth_controller.dart';
 import '../../controllers/gate_log_controller.dart';
 import '../../controllers/theme_controller.dart';
 import '../../models/scan_log_model.dart';
-import '../../models/user_profile.dart';
 import '../widgets/quick_stat_card.dart';
 import 'plate_scanner_view.dart';
 import 'visitor_registration_view.dart';
 import 'gate_logs_view.dart';
 import 'registered_vehicles_directory.dart';
 import '../portal/edit_profile_view.dart';
-import '../common/app_install_dialog.dart';
 
 class SecurityDashboardView extends StatelessWidget {
   const SecurityDashboardView({super.key});
@@ -62,14 +60,6 @@ class SecurityDashboardView extends StatelessWidget {
           ],
         ),
         actions: [
-          IconButton(
-            tooltip: 'Get Mobile App / Scan QR',
-            icon: const Icon(Icons.qr_code_2),
-            onPressed: () => showDialog(
-              context: context,
-              builder: (_) => const AppInstallDialog(),
-            ),
-          ),
           Consumer<ThemeController>(
             builder: (context, themeCtrl, _) {
               final isDark = themeCtrl.isDarkMode(context);
@@ -138,34 +128,6 @@ class SecurityDashboardView extends StatelessWidget {
                 MaterialPageRoute(builder: (_) => const EditProfileView()),
               );
             },
-          ),
-          // Switch Role Menu
-          PopupMenuButton<UserRole>(
-            tooltip: 'Switch Portal Mode',
-            icon: const Icon(Icons.swap_horiz_rounded),
-            onSelected: (role) => auth.switchRole(role),
-            itemBuilder: (_) => [
-              const PopupMenuItem(
-                value: UserRole.student,
-                child: Row(
-                  children: [
-                    Icon(Icons.school_outlined, size: 18),
-                    SizedBox(width: 8),
-                    Text('Switch to Student Portal'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: UserRole.faculty,
-                child: Row(
-                  children: [
-                    Icon(Icons.work_outline, size: 18),
-                    SizedBox(width: 8),
-                    Text('Switch to Faculty Portal'),
-                  ],
-                ),
-              ),
-            ],
           ),
           IconButton(
             tooltip: 'Sign Out',

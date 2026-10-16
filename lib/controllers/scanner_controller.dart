@@ -90,11 +90,16 @@ class ScannerController extends ChangeNotifier {
         plate = PlateFormatter.extractPlateCandidate(imagePath);
       }
 
-      // Format clean plate
-      _recognizedPlate = plate != null ? PlateFormatter.formatDisplay(plate) : 'ABC 1234';
-
-      // Step 4: Database Lookup (Security Verification)
-      verifyPlate(_recognizedPlate!);
+      if (plate != null && plate.isNotEmpty) {
+        _recognizedPlate = PlateFormatter.formatDisplay(plate);
+        // Step 4: Database Lookup (Security Verification)
+        verifyPlate(_recognizedPlate!);
+      } else {
+        _recognizedPlate = null;
+        _state = ScannerState.error;
+        _statusMessage = 'No license plate detected in image. Please point directly at the vehicle plate.';
+        notifyListeners();
+      }
     } catch (e) {
       _state = ScannerState.error;
       _statusMessage = 'Detection failed: $e';
@@ -110,7 +115,7 @@ class ScannerController extends ChangeNotifier {
       if (plate == null || plate.isEmpty) {
         plate = PlateFormatter.extractPlateCandidate(imagePath);
       }
-      return plate != null ? PlateFormatter.formatDisplay(plate) : 'ABC 1234';
+      return plate != null && plate.isNotEmpty ? PlateFormatter.formatDisplay(plate) : null;
     } catch (e) {
       debugPrint('OCR registration recognition error: $e');
       return null;

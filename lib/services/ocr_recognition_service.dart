@@ -47,16 +47,22 @@ class OcrRecognitionService {
         );
       }
 
-      // 2. Desktop/Web or Demo fallback
-      // When testing on Windows / Web, check file name or generate realistic demo recognition
+      // 2. Desktop/Web fallback: extract plate candidate from filename if available
       final filename = imagePath.split(RegExp(r'[/\\]')).last.toUpperCase();
       String? fallbackPlate = PlateFormatter.extractPlateCandidate(filename);
-      fallbackPlate ??= 'ABC 1234'; // Default test vehicle plate for desktop debugging
+
+      if (fallbackPlate != null) {
+        return OcrRecognitionResult(
+          rawText: 'DETECTED PLATE: $fallbackPlate',
+          detectedPlate: fallbackPlate,
+          isSuccess: true,
+        );
+      }
 
       return OcrRecognitionResult(
-        rawText: 'SIMULATED OCR ENGINE: $fallbackPlate\nREGISTERED VEHICLE',
-        detectedPlate: fallbackPlate,
-        isSuccess: true,
+        rawText: '',
+        detectedPlate: null,
+        isSuccess: false,
       );
     } catch (e) {
       debugPrint('OCR Recognition Error: $e');

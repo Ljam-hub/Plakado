@@ -22,150 +22,75 @@ class StorageService {
     final prefs = await SharedPreferences.getInstance();
     final service = StorageService(prefs, firestoreService);
     await service._seedInitialDataIfEmpty();
+    await service.syncFromCloud();
     return service;
   }
 
-  /// Seeds realistic initial data so the app is immediately testable upon launch
+  /// Cleans out old sample vehicles without deleting user-entered tests
   Future<void> _seedInitialDataIfEmpty() async {
     final existingVehicles = getVehicles();
-    if (existingVehicles.isEmpty) {
-      final seedVehicles = [
-        VehicleRegistration(
-          id: 'v-101',
-          plateNumber: 'ABC 1234',
-          normalizedPlate: 'ABC1234',
-          ownerId: 'u-1',
-          ownerName: 'Prof. Juan Dela Cruz',
-          ownerEmail: 'juan.delacruz@isufst.edu.ph',
-          ownerRole: UserRole.faculty,
-          department: 'College of Computer Studies',
-          idNumber: 'FAC-2018-042',
-          vehicleType: 'Car (Sedan)',
-          make: 'Toyota',
-          model: 'Vios 1.5G',
-          color: 'Pearl White',
-          status: RegistrationStatus.approved,
-          registeredAt: DateTime.now().subtract(const Duration(days: 90)),
-        ),
-        VehicleRegistration(
-          id: 'v-102',
-          plateNumber: 'XYZ 8888',
-          normalizedPlate: 'XYZ8888',
-          ownerId: 'u-2',
-          ownerName: 'Maria Santos',
-          ownerEmail: 'maria.santos@student.isufst.edu.ph',
-          ownerRole: UserRole.student,
-          department: 'College of Engineering',
-          idNumber: '2023-10492-MN-0',
-          vehicleType: 'SUV',
-          make: 'Mitsubishi',
-          model: 'Montero Sport',
-          color: 'Titanium Gray',
-          status: RegistrationStatus.approved,
-          registeredAt: DateTime.now().subtract(const Duration(days: 45)),
-        ),
-        VehicleRegistration(
-          id: 'v-103',
-          plateNumber: 'ND 45912',
-          normalizedPlate: 'ND45912',
-          ownerId: 'u-3',
-          ownerName: 'Carlo Mendoza',
-          ownerEmail: 'carlo.mendoza@student.isufst.edu.ph',
-          ownerRole: UserRole.student,
-          department: 'College of Business Administration',
-          idNumber: '2024-00122-TG-0',
-          vehicleType: 'Motorcycle',
-          make: 'Honda',
-          model: 'Click 125i',
-          color: 'Matte Blue',
-          status: RegistrationStatus.approved,
-          registeredAt: DateTime.now().subtract(const Duration(days: 15)),
-        ),
-      ];
+    final filteredVehicles = existingVehicles.where((v) {
+      final isDemoId = v.id.startsWith('demo-') || v.id.startsWith('seed-') || v.id.startsWith('sample-');
+      final isDemoEmail = v.ownerEmail.contains('example.com') || v.ownerEmail.contains('test.invalid');
+      return !isDemoId && !isDemoEmail;
+    }).toList();
+    if (filteredVehicles.length != existingVehicles.length) {
+      final list = filteredVehicles.map((v) => jsonEncode(v.toJson())).toList();
+      await _prefs.setStringList(_keyVehicles, list);
+    }
 
-      for (final v in seedVehicles) {
-        await saveVehicle(v);
-      }
+    final existingLogs = getGateLogs();
+    final demoLogIds = {'log-1', 'log-2'};
+    final filteredLogs = existingLogs.where((l) => !demoLogIds.contains(l.id)).toList();
+    if (filteredLogs.length != existingLogs.length) {
+      final list = filteredLogs.map((l) => jsonEncode(l.toJson())).toList();
+      await _prefs.setStringList(_keyLogs, list);
+    }
 
-      // Initial gate scan logs
-      final seedLogs = [
-        ScanLogModel(
-          id: 'log-1',
-          plateNumber: 'ABC 1234',
-          normalizedPlate: 'ABC1234',
-          timestamp: DateTime.now().subtract(const Duration(minutes: 42)),
-          logType: GateLogType.entry,
-          accessStatus: AccessStatus.authorized,
-          driverName: 'Prof. Juan Dela Cruz',
-          userRole: UserRole.faculty,
-          department: 'College of Computer Studies',
-          vehicleInfo: 'Toyota Vios (Pearl White)',
-          officerNotes: 'Scanned via ALPR Gate 1',
-        ),
-        ScanLogModel(
-          id: 'log-2',
-          plateNumber: 'XYZ 8888',
-          normalizedPlate: 'XYZ8888',
-          timestamp: DateTime.now().subtract(const Duration(minutes: 15)),
-          logType: GateLogType.entry,
-          accessStatus: AccessStatus.authorized,
-          driverName: 'Maria Santos',
-          userRole: UserRole.student,
-          department: 'College of Engineering',
-          vehicleInfo: 'Mitsubishi Montero Sport',
-          officerNotes: 'Scanned via ALPR Gate 2',
-        ),
-      ];
-
-      for (final l in seedLogs) {
-        await saveGateLog(l);
-      }
-    } else {
-      // Auto-migrate any existing cached local records from university.edu.ph to isufst.edu.ph
-      bool needsUpdate = false;
-      final updatedVehicles = existingVehicles.map((v) {
-        if (v.ownerEmail.contains('university.edu.ph')) {
-          needsUpdate = true;
-          return VehicleRegistration(
-            id: v.id,
-            plateNumber: v.plateNumber,
-            normalizedPlate: v.normalizedPlate,
-            ownerId: v.ownerId,
-            ownerName: v.ownerName,
-            ownerEmail: v.ownerEmail.replaceAll('university.edu.ph', 'isufst.edu.ph'),
-            ownerRole: v.ownerRole,
-            department: v.department,
-            idNumber: v.idNumber,
-            vehicleType: v.vehicleType,
-            make: v.make,
-            model: v.model,
-            color: v.color,
-            status: v.status,
-            registeredAt: v.registeredAt,
-          );
-        }
-        return v;
-      }).toList();
-
-      if (needsUpdate) {
-        final list = updatedVehicles.map((v) => jsonEncode(v.toJson())).toList();
-        await _prefs.setStringList(_keyVehicles, list);
-      }
-
-      final currentUser = getCurrentUser();
-      if (currentUser != null && currentUser.email.contains('university.edu.ph')) {
-        final migratedUser = UserProfile(
-          id: currentUser.id,
-          name: currentUser.name,
-          email: currentUser.email.replaceAll('university.edu.ph', 'isufst.edu.ph'),
-          role: currentUser.role,
-          department: currentUser.department,
-          idNumber: currentUser.idNumber,
-          contactNumber: currentUser.contactNumber,
-          photoUrl: currentUser.photoUrl,
+    // Auto-migrate any existing cached local records from university.edu.ph to isufst.edu.ph
+    bool needsUpdate = false;
+    final updatedVehicles = filteredVehicles.map((v) {
+      if (v.ownerEmail.contains('university.edu.ph')) {
+        needsUpdate = true;
+        return VehicleRegistration(
+          id: v.id,
+          plateNumber: v.plateNumber,
+          normalizedPlate: v.normalizedPlate,
+          ownerId: v.ownerId,
+          ownerName: v.ownerName,
+          ownerEmail: v.ownerEmail.replaceAll('university.edu.ph', 'isufst.edu.ph'),
+          ownerRole: v.ownerRole,
+          department: v.department,
+          idNumber: v.idNumber,
+          vehicleType: v.vehicleType,
+          make: v.make,
+          model: v.model,
+          color: v.color,
+          status: v.status,
+          registeredAt: v.registeredAt,
         );
-        await setCurrentUser(migratedUser);
       }
+      return v;
+    }).toList();
+
+    if (needsUpdate) {
+      final list = updatedVehicles.map((v) => jsonEncode(v.toJson())).toList();
+      await _prefs.setStringList(_keyVehicles, list);
+    }
+
+    final currentUser = getCurrentUser();
+    if (currentUser != null && currentUser.email.contains('university.edu.ph')) {
+      final migratedUser = UserProfile(
+        id: currentUser.id,
+        name: currentUser.name,
+        email: currentUser.email.replaceAll('university.edu.ph', 'isufst.edu.ph'),
+        role: currentUser.role,
+        department: currentUser.department,
+        idNumber: currentUser.idNumber,
+        contactNumber: currentUser.contactNumber,
+        photoUrl: currentUser.photoUrl,
+      );
+      await setCurrentUser(migratedUser);
     }
   }
 
@@ -188,8 +113,39 @@ class StorageService {
     }
     final rawList = vehicles.map((v) => jsonEncode(v.toJson())).toList();
     await _prefs.setStringList(_keyVehicles, rawList);
-    // Cloud sync
-    _firestoreService?.saveVehicle(vehicle);
+    // Cloud sync - directly await Firestore write
+    if (_firestoreService != null) {
+      await _firestoreService.saveVehicle(vehicle);
+    }
+  }
+
+  /// Pulls registered vehicles from Cloud Firestore into local storage
+  Future<void> syncFromCloud() async {
+    final fs = _firestoreService;
+    if (fs == null) return;
+    try {
+      final cloudVehicles = await fs.fetchVehicles();
+      if (cloudVehicles.isNotEmpty) {
+        final localVehicles = getVehicles();
+        bool changed = false;
+        for (final cv in cloudVehicles) {
+          final index = localVehicles.indexWhere(
+            (v) => v.normalizedPlate == cv.normalizedPlate || v.id == cv.id,
+          );
+          if (index < 0) {
+            localVehicles.add(cv);
+            changed = true;
+          } else {
+            localVehicles[index] = cv;
+            changed = true;
+          }
+        }
+        if (changed) {
+          final rawList = localVehicles.map((v) => jsonEncode(v.toJson())).toList();
+          await _prefs.setStringList(_keyVehicles, rawList);
+        }
+      }
+    } catch (_) {}
   }
 
   VehicleRegistration? findVehicleByPlate(String plate) {
@@ -264,7 +220,9 @@ class StorageService {
     final rawList = logs.map((l) => jsonEncode(l.toJson())).toList();
     await _prefs.setStringList(_keyLogs, rawList);
     // Cloud sync
-    _firestoreService?.saveGateLog(log);
+    if (_firestoreService != null) {
+      await _firestoreService.saveGateLog(log);
+    }
   }
 
   // --- VISITORS ---
@@ -282,10 +240,84 @@ class StorageService {
     final rawList = visitors.map((v) => jsonEncode(v.toJson())).toList();
     await _prefs.setStringList(_keyVisitors, rawList);
     // Cloud sync
-    _firestoreService?.saveVisitor(visitor);
+    if (_firestoreService != null) {
+      await _firestoreService.saveVisitor(visitor);
+    }
   }
 
-  // --- CURRENT USER ---
+  // --- CURRENT USER & REGISTERED ACCOUNTS ---
+  static const String _keyKnownAccounts = 'plakado_known_accounts';
+
+  static final Map<String, UserProfile> defaultKnownAccounts = {
+    'student@isufst.edu.ph': UserProfile(
+      id: 'test-student-id',
+      name: 'Student Test User',
+      email: 'student@isufst.edu.ph',
+      role: UserRole.student,
+      department: 'College of Computer Studies',
+      idNumber: '2024-00101',
+    ),
+    'faculty@isufst.edu.ph': UserProfile(
+      id: 'test-faculty-id',
+      name: 'Prof. Faculty User',
+      email: 'faculty@isufst.edu.ph',
+      role: UserRole.faculty,
+      department: 'College of Engineering',
+      idNumber: 'FAC-2024-001',
+    ),
+    'security@isufst.edu.ph': UserProfile(
+      id: 'test-security-id',
+      name: 'Officer Security Guard',
+      email: 'security@isufst.edu.ph',
+      role: UserRole.security,
+      department: 'Campus Security Office',
+      idNumber: 'SEC-2024-001',
+    ),
+  };
+
+  List<UserProfile> getKnownAccounts() {
+    final list = _prefs.getStringList(_keyKnownAccounts) ?? [];
+    final accounts = <String, UserProfile>{};
+    for (final entry in defaultKnownAccounts.entries) {
+      accounts[entry.key] = entry.value;
+    }
+    for (final jsonStr in list) {
+      try {
+        final profile = UserProfile.fromJson(jsonDecode(jsonStr));
+        accounts[profile.email.toLowerCase()] = profile;
+      } catch (_) {}
+    }
+    return accounts.values.toList();
+  }
+
+  UserProfile? getAccountByEmail(String email) {
+    final normalized = email.trim().toLowerCase();
+    if (defaultKnownAccounts.containsKey(normalized)) {
+      return defaultKnownAccounts[normalized];
+    }
+    final all = getKnownAccounts();
+    try {
+      return all.firstWhere((a) => a.email.toLowerCase() == normalized);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> saveKnownAccount(UserProfile user) async {
+    final accounts = getKnownAccounts();
+    final index = accounts.indexWhere((a) => a.email.toLowerCase() == user.email.toLowerCase());
+    if (index >= 0) {
+      accounts[index] = user;
+    } else {
+      accounts.add(user);
+    }
+    final rawList = accounts.map((a) => jsonEncode(a.toJson())).toList();
+    await _prefs.setStringList(_keyKnownAccounts, rawList);
+    if (_firestoreService != null) {
+      await _firestoreService.saveUser(user);
+    }
+  }
+
   UserProfile? getCurrentUser() {
     final jsonStr = _prefs.getString(_keyCurrentUser);
     if (jsonStr == null) return null;
@@ -300,8 +332,11 @@ class StorageService {
     if (user == null) {
       await _prefs.remove(_keyCurrentUser);
     } else {
+      await saveKnownAccount(user);
       await _prefs.setString(_keyCurrentUser, jsonEncode(user.toJson()));
-      _firestoreService?.saveUser(user);
+      if (_firestoreService != null) {
+        await _firestoreService.saveUser(user);
+      }
     }
   }
 }

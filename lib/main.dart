@@ -21,7 +21,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize Firebase for Web & Android
-  FirestoreService? firestoreService;
+  FirestoreService firestoreService;
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
@@ -29,6 +29,7 @@ void main() async {
     firestoreService = FirestoreService();
   } catch (e) {
     debugPrint('Firebase initialization note: $e');
+    firestoreService = FirestoreService();
   }
 
   // Initialize Core Services & Local Persistence with Cloud Sync

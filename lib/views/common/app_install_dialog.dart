@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
+import '../../utils/download_helper.dart';
 
 class AppInstallDialog extends StatefulWidget {
   const AppInstallDialog({super.key});
@@ -16,7 +16,6 @@ class _AppInstallDialogState extends State<AppInstallDialog> with SingleTickerPr
 
   static const String webAppUrl = 'https://plakado.web.app';
   static const String apkDownloadUrl = 'https://github.com/Ljam-hub/Plakado/releases/download/v1.0.0/Plakado.apk';
-  static const String githubReleasesUrl = 'https://github.com/Ljam-hub/Plakado/releases';
 
   @override
   void initState() {
@@ -30,51 +29,30 @@ class _AppInstallDialogState extends State<AppInstallDialog> with SingleTickerPr
     super.dispose();
   }
 
-  Future<void> _launchApkDownload() async {
-    final uri = Uri.parse(apkDownloadUrl);
-    try {
-      await launchUrl(
-        uri,
-        mode: LaunchMode.externalApplication,
-        webOnlyWindowName: '_blank',
-      );
-    } catch (_) {
-      try {
-        await launchUrl(uri, mode: LaunchMode.platformDefault);
-      } catch (e) {
-        debugPrint('Launch APK download error: $e');
-      }
-    }
+  void _launchApkDownload() {
+    DownloadHelper.downloadFile(apkDownloadUrl, filename: 'Plakado.apk');
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Row(
+        SnackBar(
+          content: const Row(
             children: [
               Icon(Icons.downloading_rounded, color: Colors.white, size: 20),
               SizedBox(width: 10),
               Expanded(
-                child: Text('Download initiated! Check your browser downloads.'),
+                child: Text('Downloading Plakado.apk (97.2 MB)...'),
               ),
             ],
           ),
-          backgroundColor: Color(0xFF10B981),
-          duration: Duration(seconds: 4),
+          action: SnackBarAction(
+            label: 'Copy Link',
+            textColor: const Color(0xFFFDE047),
+            onPressed: () => _copyUrl(apkDownloadUrl, 'APK Download URL'),
+          ),
+          backgroundColor: const Color(0xFF059669),
+          duration: const Duration(seconds: 5),
         ),
       );
-    }
-  }
-
-  Future<void> _openGithubReleases() async {
-    final uri = Uri.parse(githubReleasesUrl);
-    try {
-      await launchUrl(
-        uri,
-        mode: LaunchMode.externalApplication,
-        webOnlyWindowName: '_blank',
-      );
-    } catch (e) {
-      debugPrint('Error opening releases: $e');
     }
   }
 
@@ -352,43 +330,30 @@ class _AppInstallDialogState extends State<AppInstallDialog> with SingleTickerPr
           // Download Button
           ElevatedButton.icon(
             onPressed: _launchApkDownload,
-            icon: const Icon(Icons.download, size: 18),
-            label: const Text('Download Plakado.apk (96.7 MB)'),
+            icon: const Icon(Icons.download, size: 20),
+            label: const Text(
+              'Download Plakado.apk (97.2 MB)',
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+            ),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF059669),
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-              minimumSize: const Size(double.infinity, 44),
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+              minimumSize: const Size(double.infinity, 48),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 2,
             ),
           ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _openGithubReleases,
-                  icon: const Icon(Icons.open_in_new, size: 15),
-                  label: const Text('Releases Page', style: TextStyle(fontSize: 12)),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-                    minimumSize: const Size(0, 36),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => _copyUrl(apkDownloadUrl, 'APK Download URL'),
-                  icon: const Icon(Icons.link, size: 15),
-                  label: const Text('Copy Link', style: TextStyle(fontSize: 12)),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-                    minimumSize: const Size(0, 36),
-                  ),
-                ),
-              ),
-            ],
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            onPressed: () => _copyUrl(apkDownloadUrl, 'Direct Download Link'),
+            icon: const Icon(Icons.copy_rounded, size: 16),
+            label: const Text('Copy Direct Download Link'),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+              minimumSize: const Size(double.infinity, 38),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
           ),
         ],
       ),

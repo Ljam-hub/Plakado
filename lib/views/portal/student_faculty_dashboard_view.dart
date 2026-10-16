@@ -13,7 +13,6 @@ import '../widgets/plate_display_widget.dart';
 import 'register_vehicle_view.dart';
 import 'digital_gate_pass_view.dart';
 import 'edit_profile_view.dart';
-import '../common/app_install_dialog.dart';
 
 class StudentFacultyDashboardView extends StatelessWidget {
   const StudentFacultyDashboardView({super.key});
@@ -79,14 +78,6 @@ class StudentFacultyDashboardView extends StatelessWidget {
           ],
         ),
         actions: [
-          IconButton(
-            tooltip: 'Get Mobile App / Scan QR',
-            icon: const Icon(Icons.qr_code_2),
-            onPressed: () => showDialog(
-              context: context,
-              builder: (_) => const AppInstallDialog(),
-            ),
-          ),
           Consumer<ThemeController>(
             builder: (context, themeCtrl, _) {
               return PopupMenuButton<ThemeMode>(
@@ -144,46 +135,6 @@ class StudentFacultyDashboardView extends StatelessWidget {
                 ],
               );
             },
-          ),
-          // Switch to Security Mode shortcut
-          PopupMenuButton<UserRole>(
-            tooltip: 'Switch Portal Mode',
-            icon: const Icon(Icons.swap_horiz_rounded),
-            onSelected: (role) => auth.switchRole(role),
-            itemBuilder: (_) => [
-              const PopupMenuItem(
-                value: UserRole.security,
-                child: Row(
-                  children: [
-                    Icon(Icons.security, size: 18),
-                    SizedBox(width: 8),
-                    Text('Switch to Security Guard View'),
-                  ],
-                ),
-              ),
-              if (user?.role == UserRole.student)
-                const PopupMenuItem(
-                  value: UserRole.faculty,
-                  child: Row(
-                    children: [
-                      Icon(Icons.work_outline, size: 18),
-                      SizedBox(width: 8),
-                      Text('Switch to Faculty View'),
-                    ],
-                  ),
-                )
-              else
-                const PopupMenuItem(
-                  value: UserRole.student,
-                  child: Row(
-                    children: [
-                      Icon(Icons.school_outlined, size: 18),
-                      SizedBox(width: 8),
-                      Text('Switch to Student View'),
-                    ],
-                  ),
-                ),
-            ],
           ),
           IconButton(
             tooltip: 'Sign Out',
@@ -252,42 +203,6 @@ class StudentFacultyDashboardView extends StatelessWidget {
                               Text(
                                 user?.email ?? '',
                                 style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
-                              ),
-                              const SizedBox(height: 6),
-                              InkWell(
-                                onTap: () => themeCtrl.cycleTheme(),
-                                borderRadius: BorderRadius.circular(12),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                  decoration: BoxDecoration(
-                                    color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        themeCtrl.themeMode == ThemeMode.system
-                                            ? Icons.brightness_auto
-                                            : (isDark ? Icons.dark_mode_outlined : Icons.light_mode_outlined),
-                                        size: 13,
-                                        color: isDark ? const Color(0xFFFBBF24) : const Color(0xFF2563EB),
-                                      ),
-                                      const SizedBox(width: 5),
-                                      Text(
-                                        'Theme: ${themeCtrl.themeModeName}',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
                               ),
                             ],
                           ),

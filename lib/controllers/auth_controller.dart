@@ -26,6 +26,10 @@ class AuthController extends ChangeNotifier {
 
   UserRole get currentRole => _currentUser?.role ?? UserRole.student;
 
+  UserProfile? getAccountByEmail(String email) {
+    return _storageService.getAccountByEmail(email);
+  }
+
   /// Requests a 6-digit email OTP verification code and dispatches to inbox via Resend API
   String requestVerificationCode(String email) {
     final code = _otpService.generateOtp(email);
@@ -68,13 +72,19 @@ class AuthController extends ChangeNotifier {
         return false;
       }
 
+      // 1 Account is permanently bound to 1 role (Student, Faculty, or Security)
+      final existing = _storageService.getAccountByEmail(normalizedEmail);
+      final effectiveRole = existing?.role ?? _deriveRoleFromEmailOrSelection(normalizedEmail, role);
+
       final profile = UserProfile(
-        id: const Uuid().v4(),
-        name: name.trim().isEmpty ? 'ISUFST Campus User' : name.trim(),
+        id: existing?.id ?? const Uuid().v4(),
+        name: (name.trim().isNotEmpty ? name.trim() : existing?.name) ?? 'ISUFST Campus User',
         email: normalizedEmail,
-        role: role,
-        department: department?.trim() ?? (role == UserRole.security ? 'Campus Security' : 'General'),
-        idNumber: idNumber?.trim() ?? (role == UserRole.student ? '2024-0001' : 'FAC-1001'),
+        role: effectiveRole,
+        department: department?.trim() ?? existing?.department ?? (effectiveRole == UserRole.security ? 'Campus Security' : 'General'),
+        idNumber: idNumber?.trim() ?? existing?.idNumber ?? (effectiveRole == UserRole.student ? '2024-0001' : 'FAC-1001'),
+        contactNumber: existing?.contactNumber,
+        photoUrl: existing?.photoUrl,
       );
 
       _currentUser = profile;
@@ -114,13 +124,19 @@ class AuthController extends ChangeNotifier {
         return false;
       }
 
+      // Enforce 1 account = 1 permanent role
+      final existing = _storageService.getAccountByEmail(normalizedEmail);
+      final effectiveRole = existing?.role ?? _deriveRoleFromEmailOrSelection(normalizedEmail, role);
+
       final profile = UserProfile(
-        id: const Uuid().v4(),
-        name: name.trim().isEmpty ? 'Campus User' : name.trim(),
+        id: existing?.id ?? const Uuid().v4(),
+        name: (name.trim().isNotEmpty ? name.trim() : existing?.name) ?? 'Campus User',
         email: normalizedEmail,
-        role: role,
-        department: department?.trim() ?? (role == UserRole.security ? 'Campus Security' : 'General'),
-        idNumber: idNumber?.trim() ?? (role == UserRole.student ? '2024-0001' : 'FAC-1001'),
+        role: effectiveRole,
+        department: department?.trim() ?? existing?.department ?? (effectiveRole == UserRole.security ? 'Campus Security' : 'General'),
+        idNumber: idNumber?.trim() ?? existing?.idNumber ?? (effectiveRole == UserRole.student ? '2024-0001' : 'FAC-1001'),
+        contactNumber: existing?.contactNumber,
+        photoUrl: existing?.photoUrl,
       );
 
       _currentUser = profile;
@@ -137,23 +153,23 @@ class AuthController extends ChangeNotifier {
     }
   }
 
-  /// Switch roles for demo and multi-user testing
+  static UserRole _deriveRoleFromEmailOrSelection(String email, UserRole fallback) {
+    final lower = email.toLowerCase();
+    if (lower.startsWith('student') || lower.contains('.student') || lower.contains('student.')) {
+      return UserRole.student;
+    }
+    if (lower.startsWith('security') || lower.contains('guard') || lower.contains('security.')) {
+      return UserRole.security;
+    }
+    if (lower.startsWith('faculty') || lower.startsWith('prof') || lower.contains('faculty.')) {
+      return UserRole.faculty;
+    }
+    return fallback;
+  }
+
+  /// Deprecated: Role switching is disabled. Each account is limited permanently to 1 role.
   Future<void> switchRole(UserRole newRole) async {
-    if (_currentUser == null) return;
-
-    final updated = UserProfile(
-      id: _currentUser!.id,
-      name: _currentUser!.name,
-      email: _currentUser!.email,
-      role: newRole,
-      department: newRole == UserRole.security ? 'Campus Security Office' : _currentUser!.department,
-      idNumber: _currentUser!.idNumber,
-      contactNumber: _currentUser!.contactNumber,
-      photoUrl: _currentUser!.photoUrl,
-    );
-
-    _currentUser = updated;
-    await _storageService.setCurrentUser(updated);
+    // No-op: Accounts cannot change their role once assigned
     notifyListeners();
   }
 

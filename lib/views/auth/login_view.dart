@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -21,9 +22,70 @@ class _LoginViewState extends State<LoginView> {
   final _deptController = TextEditingController();
 
   UserRole _selectedRole = UserRole.student;
+  UserRole? _lockedRole;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController.addListener(_onEmailChanged);
+  }
+
+  void _onEmailChanged() {
+    final email = _emailController.text.trim().toLowerCase();
+    final auth = context.read<AuthController>();
+    final account = auth.getAccountByEmail(email);
+
+    if (account != null) {
+      if (_selectedRole != account.role || _lockedRole != account.role) {
+        setState(() {
+          _selectedRole = account.role;
+          _lockedRole = account.role;
+          if (_nameController.text.isEmpty && account.name.isNotEmpty) {
+            _nameController.text = account.name;
+          }
+          if (_idNumberController.text.isEmpty && account.idNumber.isNotEmpty) {
+            _idNumberController.text = account.idNumber;
+          }
+          if (_deptController.text.isEmpty && account.department.isNotEmpty) {
+            _deptController.text = account.department;
+          }
+        });
+      }
+    } else {
+      if (email.startsWith('student') || email.contains('.student') || email.contains('student.')) {
+        if (_selectedRole != UserRole.student || _lockedRole != UserRole.student) {
+          setState(() {
+            _selectedRole = UserRole.student;
+            _lockedRole = UserRole.student;
+          });
+        }
+      } else if (email.startsWith('security') || email.contains('guard') || email.contains('security.')) {
+        if (_selectedRole != UserRole.security || _lockedRole != UserRole.security) {
+          setState(() {
+            _selectedRole = UserRole.security;
+            _lockedRole = UserRole.security;
+          });
+        }
+      } else if (email.startsWith('faculty') || email.startsWith('prof') || email.contains('faculty.')) {
+        if (_selectedRole != UserRole.faculty || _lockedRole != UserRole.faculty) {
+          setState(() {
+            _selectedRole = UserRole.faculty;
+            _lockedRole = UserRole.faculty;
+          });
+        }
+      } else {
+        if (_lockedRole != null) {
+          setState(() {
+            _lockedRole = null;
+          });
+        }
+      }
+    }
+  }
 
   @override
   void dispose() {
+    _emailController.removeListener(_onEmailChanged);
     _emailController.dispose();
     _nameController.dispose();
     _idNumberController.dispose();
@@ -76,6 +138,32 @@ class _LoginViewState extends State<LoginView> {
     }
   }
 
+  Future<void> _quickLogin({
+    required String email,
+    required String name,
+    required UserRole role,
+    required String idNumber,
+    required String department,
+  }) async {
+    final auth = context.read<AuthController>();
+    final success = await auth.signInWithSchoolGoogle(
+      email: email,
+      name: name,
+      role: role,
+      idNumber: idNumber,
+      department: department,
+    );
+    if (success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Signed in as ${role.displayName} ($name)'),
+          backgroundColor: const Color(0xFF10B981),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthController>();
@@ -86,18 +174,20 @@ class _LoginViewState extends State<LoginView> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
-          TextButton.icon(
-            onPressed: () => showDialog(
-              context: context,
-              builder: (_) => const AppInstallDialog(),
+          if (kIsWeb) ...[
+            TextButton.icon(
+              onPressed: () => showDialog(
+                context: context,
+                builder: (_) => const AppInstallDialog(),
+              ),
+              icon: const Icon(Icons.install_mobile, size: 18),
+              label: const Text(
+                'Install App / QR',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+              ),
             ),
-            icon: const Icon(Icons.install_mobile, size: 18),
-            label: const Text(
-              'Install App / QR',
-              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-            ),
-          ),
-          const SizedBox(width: 8),
+            const SizedBox(width: 8),
+          ],
         ],
       ),
       body: SafeArea(
@@ -167,14 +257,40 @@ class _LoginViewState extends State<LoginView> {
                         const SizedBox(height: 28),
 
                         // Role Selector Segment
-                        Text(
-                          'SELECT USER ROLE',
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 1.0,
-                            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
-                          ),
+                        Row(
+                          children: [
+                            Text(
+                              'SELECT USER ROLE',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 1.0,
+                                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
+                              ),
+                            ),
+                            if (_lockedRole != null) ...[
+                              const Spacer(),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF2563EB).withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: const Color(0xFF2563EB).withValues(alpha: 0.3)),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.lock, size: 11, color: Color(0xFF2563EB)),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Account Locked (${_lockedRole!.displayName})',
+                                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF2563EB)),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                         const SizedBox(height: 8),
                         Container(
@@ -260,14 +376,16 @@ class _LoginViewState extends State<LoginView> {
                             style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 15),
                           ),
                         ),
-                        const SizedBox(height: 18),
+                        const SizedBox(height: 20),
+
+                        // Quick Test Accounts (1-Tap Login)
                         Row(
                           children: [
                             const Expanded(child: Divider()),
                             Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 12),
                               child: Text(
-                                'MOBILE ACCESS',
+                                'QUICK TEST ACCOUNTS (1-TAP)',
                                 style: GoogleFonts.inter(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w700,
@@ -279,21 +397,124 @@ class _LoginViewState extends State<LoginView> {
                             const Expanded(child: Divider()),
                           ],
                         ),
-                        const SizedBox(height: 14),
-                        OutlinedButton.icon(
-                          onPressed: () => showDialog(
-                            context: context,
-                            builder: (_) => const AppInstallDialog(),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: auth.isLoading
+                                    ? null
+                                    : () => _quickLogin(
+                                          email: 'student@isufst.edu.ph',
+                                          name: 'Student Test User',
+                                          role: UserRole.student,
+                                          idNumber: '2024-00101',
+                                          department: 'College of Computer Studies',
+                                        ),
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Text('🎓 Student', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                                    const SizedBox(height: 2),
+                                    Text('student@...', style: TextStyle(fontSize: 10, color: isDark ? Colors.white60 : Colors.black54)),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: auth.isLoading
+                                    ? null
+                                    : () => _quickLogin(
+                                          email: 'faculty@isufst.edu.ph',
+                                          name: 'Prof. Faculty User',
+                                          role: UserRole.faculty,
+                                          idNumber: 'FAC-2024-001',
+                                          department: 'College of Engineering',
+                                        ),
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Text('👔 Faculty', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                                    const SizedBox(height: 2),
+                                    Text('faculty@...', style: TextStyle(fontSize: 10, color: isDark ? Colors.white60 : Colors.black54)),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: auth.isLoading
+                                    ? null
+                                    : () => _quickLogin(
+                                          email: 'security@isufst.edu.ph',
+                                          name: 'Officer Security Guard',
+                                          role: UserRole.security,
+                                          idNumber: 'SEC-2024-001',
+                                          department: 'Campus Security Office',
+                                        ),
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Text('🛡️ Security', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                                    const SizedBox(height: 2),
+                                    Text('security@...', style: TextStyle(fontSize: 10, color: isDark ? Colors.white60 : Colors.black54)),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (kIsWeb) ...[
+                          const SizedBox(height: 18),
+                          Row(
+                            children: [
+                              const Expanded(child: Divider()),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                child: Text(
+                                  'MOBILE ACCESS',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
+                                    letterSpacing: 1.2,
+                                  ),
+                                ),
+                              ),
+                              const Expanded(child: Divider()),
+                            ],
                           ),
-                          icon: const Icon(Icons.qr_code_2_rounded, color: Color(0xFF2563EB)),
-                          label: const Text('Install App / Scan QR Code'),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                          const SizedBox(height: 14),
+                          OutlinedButton.icon(
+                            onPressed: () => showDialog(
+                              context: context,
+                              builder: (_) => const AppInstallDialog(),
+                            ),
+                            icon: const Icon(Icons.qr_code_2_rounded, color: Color(0xFF2563EB)),
+                            label: const Text('Install App / Scan QR Code'),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                   ),
@@ -309,35 +530,59 @@ class _LoginViewState extends State<LoginView> {
   Widget _buildRoleTab(BuildContext context, UserRole role, String label) {
     final isSelected = _selectedRole == role;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isLockedOut = _lockedRole != null && _lockedRole != role;
+
     return Expanded(
       child: GestureDetector(
-        onTap: () => setState(() => _selectedRole = role),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? (isDark ? const Color(0xFF334155) : Colors.white)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(10),
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.06),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ]
-                : null,
-          ),
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: GoogleFonts.inter(
-              fontSize: 13,
-              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+        onTap: isLockedOut
+            ? () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Account permanently bound to ${_lockedRole!.displayName}. Role cannot be switched.'),
+                    duration: const Duration(seconds: 2),
+                    backgroundColor: const Color(0xFFF59E0B),
+                  ),
+                );
+              }
+            : () => setState(() => _selectedRole = role),
+        child: Opacity(
+          opacity: isLockedOut ? 0.4 : 1.0,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            decoration: BoxDecoration(
               color: isSelected
-                  ? (isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB))
-                  : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                  ? (isDark ? const Color(0xFF334155) : Colors.white)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(10),
+              boxShadow: isSelected
+                  ? [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.06),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (isSelected && _lockedRole == role) ...[
+                  const Icon(Icons.lock, size: 11, color: Color(0xFF2563EB)),
+                  const SizedBox(width: 4),
+                ],
+                Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                    color: isSelected
+                        ? (isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB))
+                        : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                  ),
+                ),
+              ],
             ),
           ),
         ),

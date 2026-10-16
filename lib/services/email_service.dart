@@ -118,7 +118,7 @@ class EmailService {
         <div class="otp-code">$code</div>
       </div>
       <p class="notice">
-        • This code will expire in <strong>60 seconds</strong>.<br>
+        • This code will expire in <strong>5 minutes</strong>.<br>
         • Do not share this code with anyone. Campus security officers will never ask for your code.
       </p>
     </div>

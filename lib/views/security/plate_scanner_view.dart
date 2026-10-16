@@ -116,27 +116,6 @@ class _PlateScannerViewState extends State<PlateScannerView> {
                   // Camera backdrop or simulation background
                   Container(
                     color: const Color(0xFF0F172A),
-                    child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.directions_car_filled_outlined,
-                            size: 110,
-                            color: Colors.white.withValues(alpha: 0.08),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            'Align vehicle license plate inside the target box',
-                            style: GoogleFonts.inter(
-                              color: Colors.white54,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                   ),
 
                   // YOLO Bounding Box Viewport

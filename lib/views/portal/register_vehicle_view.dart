@@ -408,21 +408,10 @@ class _RegisterVehicleViewState extends State<RegisterVehicleView> {
                     TextFormField(
                       controller: _plateController,
                       textCapitalization: TextCapitalization.characters,
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         labelText: 'Plate Number',
                         hintText: 'e.g. ABC 1234 or 123 ABC',
-                        prefixIcon: const Icon(Icons.pin),
-                        suffixIcon: IconButton(
-                          icon: _isScanningPlate
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : const Icon(Icons.camera_alt, color: Color(0xFF2563EB)),
-                          tooltip: 'Scan Plate with Camera',
-                          onPressed: _isScanningPlate ? null : _showScanPicker,
-                        ),
+                        prefixIcon: Icon(Icons.pin),
                         helperText: 'Standard Philippine 4-wheel or motorcycle plate',
                       ),
                       validator: (v) {

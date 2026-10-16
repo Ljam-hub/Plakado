@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../services/image_processing_service.dart';
 
 class YoloBoundingBoxWidget extends StatefulWidget {
@@ -46,10 +47,10 @@ class _YoloBoundingBoxWidgetState extends State<YoloBoundingBoxWidget>
         // Default viewfinder or YOLO detected box
         final box = widget.detectedBox ??
             YoloBoundingBox(
-              x: 0.15,
-              y: 0.35,
-              width: 0.70,
-              height: 0.28,
+              x: 0.10,
+              y: 0.28,
+              width: 0.80,
+              height: 0.26,
               confidence: 0.0,
             );
 
@@ -76,7 +77,7 @@ class _YoloBoundingBoxWidgetState extends State<YoloBoundingBoxWidget>
                       margin: EdgeInsets.fromLTRB(left, top, width - (left + boxW), height - (top + boxH)),
                       decoration: BoxDecoration(
                         color: Colors.black,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(16),
                       ),
                     ),
                   ),
@@ -92,30 +93,54 @@ class _YoloBoundingBoxWidgetState extends State<YoloBoundingBoxWidget>
               height: boxH,
               child: Container(
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: widget.detectedBox != null ? const Color(0xFF10B981) : Colors.white70,
+                    color: widget.detectedBox != null ? const Color(0xFF10B981) : Colors.white.withValues(alpha: 0.85),
                     width: 2.5,
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: (widget.detectedBox != null ? const Color(0xFF10B981) : const Color(0xFF2563EB))
+                          .withValues(alpha: 0.2),
+                      blurRadius: 12,
+                      spreadRadius: 1,
+                    ),
+                  ],
                 ),
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    // YOLO Model Detection Tag
+                    // Faint vehicle watermark silhouette centered inside target box
+                    Center(
+                      child: Icon(
+                        Icons.directions_car_filled_outlined,
+                        size: 72,
+                        color: Colors.white.withValues(alpha: 0.07),
+                      ),
+                    ),
+
+                    // YOLO Model Detection Tag (Neatly docked to top-left)
                     Positioned(
-                      top: -24,
-                      left: 0,
+                      top: -14,
+                      left: 12,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: widget.detectedBox != null ? const Color(0xFF10B981) : Colors.blueAccent,
-                          borderRadius: BorderRadius.circular(4),
+                          color: widget.detectedBox != null ? const Color(0xFF10B981) : const Color(0xFF2563EB),
+                          borderRadius: BorderRadius.circular(6),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.4),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             const Icon(Icons.auto_awesome, color: Colors.white, size: 12),
-                            const SizedBox(width: 4),
+                            const SizedBox(width: 5),
                             Text(
                               widget.detectedBox != null
                                   ? 'YOLOv8: license_plate ${(widget.detectedBox!.confidence * 100).toStringAsFixed(1)}%'
@@ -158,6 +183,45 @@ class _YoloBoundingBoxWidgetState extends State<YoloBoundingBoxWidget>
                         },
                       ),
                   ],
+                ),
+              ),
+            ),
+
+            // Instruction pill positioned comfortably below the target box (no collision with borders)
+            Positioned(
+              left: 20,
+              right: 20,
+              top: top + boxH + 18,
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0F172A).withValues(alpha: 0.85),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.4),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.filter_center_focus, size: 15, color: Color(0xFF60A5FA)),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Align vehicle license plate inside the target box',
+                        style: GoogleFonts.inter(
+                          color: Colors.white70,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

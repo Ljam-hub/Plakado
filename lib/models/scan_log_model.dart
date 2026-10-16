@@ -49,7 +49,7 @@ class ScanLogModel {
     this.userRole,
     this.department,
     this.vehicleInfo,
-    this.gateName = 'Main Gate',
+    this.gateName = 'Main Entrance',
     this.officerNotes,
   });
 
@@ -89,7 +89,7 @@ class ScanLogModel {
           : null,
       department: json['department'] as String?,
       vehicleInfo: json['vehicleInfo'] as String?,
-      gateName: json['gateName'] as String? ?? 'Main Gate',
+      gateName: json['gateName'] as String? ?? 'Main Entrance',
       officerNotes: json['officerNotes'] as String?,
     );
   }
