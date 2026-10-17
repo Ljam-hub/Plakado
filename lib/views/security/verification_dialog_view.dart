@@ -7,7 +7,7 @@ import '../../models/user_profile.dart';
 import '../widgets/plate_display_widget.dart';
 import 'visitor_registration_view.dart';
 
-class VerificationDialogView extends StatelessWidget {
+class VerificationDialogView extends StatefulWidget {
   final String plateNumber;
   final VehicleRegistration? vehicle;
   final bool isAuthorized;
@@ -20,6 +20,70 @@ class VerificationDialogView extends StatelessWidget {
     required this.isAuthorized,
     required this.onDismiss,
   });
+
+  @override
+  State<VerificationDialogView> createState() => _VerificationDialogViewState();
+}
+
+class _VerificationDialogViewState extends State<VerificationDialogView> {
+  bool _isSubmitting = false;
+  String? _submittingAction;
+
+  Future<void> _handleLogEntry() async {
+    if (_isSubmitting || widget.vehicle == null) return;
+    setState(() {
+      _isSubmitting = true;
+      _submittingAction = 'entry';
+    });
+    try {
+      await context.read<GateLogController>().logAuthorizedEntry(widget.vehicle!);
+      if (mounted) {
+        Navigator.pop(context);
+        widget.onDismiss();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Entry logged for ${widget.vehicle!.plateNumber}'),
+            backgroundColor: const Color(0xFF10B981),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+          _submittingAction = null;
+        });
+      }
+    }
+  }
+
+  Future<void> _handleLogExit() async {
+    if (_isSubmitting || widget.vehicle == null) return;
+    setState(() {
+      _isSubmitting = true;
+      _submittingAction = 'exit';
+    });
+    try {
+      await context.read<GateLogController>().logAuthorizedExit(widget.vehicle!);
+      if (mounted) {
+        Navigator.pop(context);
+        widget.onDismiss();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Exit logged for ${widget.vehicle!.plateNumber}'),
+            backgroundColor: const Color(0xFF2563EB),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+          _submittingAction = null;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,46 +103,55 @@ class VerificationDialogView extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: isAuthorized
-                          ? const Color(0xFFECFDF5).withValues(alpha: isDark ? 0.2 : 1.0)
-                          : const Color(0xFFFFFBEB).withValues(alpha: isDark ? 0.2 : 1.0),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: isAuthorized ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
-                        width: 1.5,
+                  Flexible(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: widget.isAuthorized
+                            ? const Color(0xFFECFDF5).withValues(alpha: isDark ? 0.2 : 1.0)
+                            : const Color(0xFFFFFBEB).withValues(alpha: isDark ? 0.2 : 1.0),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: widget.isAuthorized ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            widget.isAuthorized ? Icons.check_circle : Icons.warning_amber_rounded,
+                            color: widget.isAuthorized ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                            size: 18,
+                          ),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              widget.isAuthorized ? 'AUTHORIZED CAMPUS VEHICLE' : 'VISITOR / UNREGISTERED',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.inter(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: widget.isAuthorized
+                                    ? (isDark ? const Color(0xFF34D399) : const Color(0xFF065F46))
+                                    : (isDark ? const Color(0xFFFBBF24) : const Color(0xFF92400E)),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          isAuthorized ? Icons.check_circle : Icons.warning_amber_rounded,
-                          color: isAuthorized ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
-                          size: 18,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          isAuthorized ? 'AUTHORIZED CAMPUS VEHICLE' : 'VISITOR / UNREGISTERED',
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: isAuthorized
-                                ? (isDark ? const Color(0xFF34D399) : const Color(0xFF065F46))
-                                : (isDark ? const Color(0xFFFBBF24) : const Color(0xFF92400E)),
-                          ),
-                        ),
-                      ],
-                    ),
                   ),
+                  const SizedBox(width: 8),
                   IconButton(
                     icon: const Icon(Icons.close, color: Colors.grey),
-                    onPressed: () {
-                      Navigator.pop(context);
-                      onDismiss();
-                    },
+                    onPressed: _isSubmitting
+                        ? null
+                        : () {
+                            Navigator.pop(context);
+                            widget.onDismiss();
+                          },
                   ),
                 ],
               ),
@@ -87,35 +160,35 @@ class VerificationDialogView extends StatelessWidget {
               // License Plate Widget
               Center(
                 child: PlateDisplayWidget(
-                  plateNumber: plateNumber,
+                  plateNumber: widget.plateNumber,
                   fontSize: 28,
                 ),
               ),
               const SizedBox(height: 24),
 
               // Detail Cards
-              if (isAuthorized && vehicle != null) ...[
+              if (widget.isAuthorized && widget.vehicle != null) ...[
                 _buildInfoTile(
                   context,
                   icon: Icons.person,
                   label: 'Registered Driver / Owner',
-                  value: vehicle!.ownerName,
-                  subvalue: '${vehicle!.ownerRole.displayName} • ${vehicle!.idNumber}',
+                  value: widget.vehicle!.ownerName,
+                  subvalue: '${widget.vehicle!.ownerRole.displayName} • ${widget.vehicle!.idNumber}',
                 ),
                 const SizedBox(height: 12),
                 _buildInfoTile(
                   context,
                   icon: Icons.school,
                   label: 'College / Department',
-                  value: vehicle!.department,
+                  value: widget.vehicle!.department,
                 ),
                 const SizedBox(height: 12),
                 _buildInfoTile(
                   context,
                   icon: Icons.directions_car,
                   label: 'Vehicle Details',
-                  value: '${vehicle!.make} ${vehicle!.model}',
-                  subvalue: 'Color: ${vehicle!.color} • Type: ${vehicle!.vehicleType}',
+                  value: '${widget.vehicle!.make} ${widget.vehicle!.model}',
+                  subvalue: 'Color: ${widget.vehicle!.color} • Type: ${widget.vehicle!.vehicleType}',
                 ),
                 const SizedBox(height: 24),
 
@@ -129,21 +202,18 @@ class VerificationDialogView extends StatelessWidget {
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
-                        onPressed: () async {
-                          await context.read<GateLogController>().logAuthorizedEntry(vehicle!);
-                          if (context.mounted) {
-                            Navigator.pop(context);
-                            onDismiss();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Entry logged for ${vehicle!.plateNumber}'),
-                                backgroundColor: const Color(0xFF10B981),
-                              ),
-                            );
-                          }
-                        },
-                        icon: const Icon(Icons.login_rounded),
-                        label: const Text('Log Entry', style: TextStyle(fontWeight: FontWeight.bold)),
+                        onPressed: _isSubmitting ? null : _handleLogEntry,
+                        icon: _submittingAction == 'entry'
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              )
+                            : const Icon(Icons.login_rounded),
+                        label: Text(
+                          _submittingAction == 'entry' ? 'Logging...' : 'Log Entry',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -153,21 +223,18 @@ class VerificationDialogView extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           side: const BorderSide(color: Color(0xFF64748B)),
                         ),
-                        onPressed: () async {
-                          await context.read<GateLogController>().logAuthorizedExit(vehicle!);
-                          if (context.mounted) {
-                            Navigator.pop(context);
-                            onDismiss();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Exit logged for ${vehicle!.plateNumber}'),
-                                backgroundColor: const Color(0xFF2563EB),
-                              ),
-                            );
-                          }
-                        },
-                        icon: const Icon(Icons.logout_rounded),
-                        label: const Text('Log Exit', style: TextStyle(fontWeight: FontWeight.bold)),
+                        onPressed: _isSubmitting ? null : _handleLogExit,
+                        icon: _submittingAction == 'exit'
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.logout_rounded),
+                        label: Text(
+                          _submittingAction == 'exit' ? 'Logging...' : 'Log Exit',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
                       ),
                     ),
                   ],
@@ -192,7 +259,7 @@ class VerificationDialogView extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'No registration record found for plate $plateNumber.',
+                        'No registration record found for plate ${widget.plateNumber}.',
                         textAlign: TextAlign.center,
                         style: GoogleFonts.inter(
                           fontSize: 13,
@@ -225,7 +292,7 @@ class VerificationDialogView extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => VisitorRegistrationView(initialPlate: plateNumber),
+                        builder: (_) => VisitorRegistrationView(initialPlate: widget.plateNumber),
                       ),
                     );
                   },
@@ -274,6 +341,8 @@ class VerificationDialogView extends StatelessWidget {
               children: [
                 Text(
                   label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.inter(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
@@ -282,6 +351,8 @@ class VerificationDialogView extends StatelessWidget {
                 ),
                 Text(
                   value,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.inter(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
@@ -292,6 +363,8 @@ class VerificationDialogView extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     subvalue,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.inter(
                       fontSize: 12,
                       color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),

@@ -197,6 +197,7 @@ class _EditProfileViewState extends State<EditProfileView> {
                       controller: _deptController,
                       decoration: InputDecoration(
                         labelText: user?.role == UserRole.security ? 'Gate Assignment' : 'College / Department',
+                        hintText: 'e.g. College of Informatics and Computing Innovations',
                         prefixIcon: const Icon(Icons.account_balance_outlined),
                       ),
                       validator: (v) => (v == null || v.isEmpty) ? 'Enter department' : null,
@@ -226,9 +227,12 @@ class _EditProfileViewState extends State<EditProfileView> {
                               child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                             )
                           : const Icon(Icons.save_outlined),
-                      label: Text(
-                        auth.isLoading ? 'Saving Changes...' : 'Save Updated Credentials',
-                        style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 15),
+                      label: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          auth.isLoading ? 'Saving Changes...' : 'Save Updated Credentials',
+                          style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 15),
+                        ),
                       ),
                     ),
                   ],

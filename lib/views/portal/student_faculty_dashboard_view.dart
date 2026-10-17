@@ -188,6 +188,8 @@ class StudentFacultyDashboardView extends StatelessWidget {
                             children: [
                               Text(
                                 user?.name ?? 'Student',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: GoogleFonts.inter(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w800,
@@ -197,11 +199,15 @@ class StudentFacultyDashboardView extends StatelessWidget {
                               const SizedBox(height: 2),
                               Text(
                                 '${user?.idNumber} • ${user?.department}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                               ),
                               const SizedBox(height: 2),
                               Text(
                                 user?.email ?? '',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
                               ),
                             ],
@@ -324,16 +330,20 @@ class StudentFacultyDashboardView extends StatelessWidget {
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                           children: [
-                                            Text(
-                                              '${v.make} ${v.model}',
-                                              style: GoogleFonts.inter(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.w700,
-                                                color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                            Expanded(
+                                              child: Text(
+                                                '${v.make} ${v.model}',
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: GoogleFonts.inter(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                                ),
                                               ),
                                             ),
+                                            const SizedBox(width: 8),
                                             Container(
                                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                               decoration: BoxDecoration(
@@ -354,11 +364,15 @@ class StudentFacultyDashboardView extends StatelessWidget {
                                         const SizedBox(height: 4),
                                         Text(
                                           '${v.vehicleType} • Color: ${v.color}',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                           style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
                                           'Registered ${DateFormat('MMM dd, yyyy').format(v.registeredAt)}',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                           style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
                                         ),
                                       ],
@@ -388,7 +402,10 @@ class StudentFacultyDashboardView extends StatelessWidget {
                                     );
                                   },
                                   icon: const Icon(Icons.qr_code, size: 20),
-                                  label: const Text('View Digital Gate Pass (QR & ALPR Card)'),
+                                  label: const FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text('View Digital Gate Pass (QR & ALPR Card)'),
+                                  ),
                                 ),
                               ),
                             ],
@@ -453,12 +470,15 @@ class StudentFacultyDashboardView extends StatelessWidget {
                               Expanded(
                                 child: Text(
                                   '${log.plateNumber} • ${isEntry ? "Entered" : "Exited"} Campus Gate',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                   style: GoogleFonts.inter(
                                     fontWeight: FontWeight.w600,
                                     fontSize: 13,
                                   ),
                                 ),
                               ),
+                              const SizedBox(width: 8),
                               Text(
                                 DateFormat('MMM dd • hh:mm a').format(log.timestamp),
                                 style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),

@@ -408,10 +408,24 @@ class _RegisterVehicleViewState extends State<RegisterVehicleView> {
                     TextFormField(
                       controller: _plateController,
                       textCapitalization: TextCapitalization.characters,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Plate Number',
                         hintText: 'e.g. ABC 1234 or 123 ABC',
-                        prefixIcon: Icon(Icons.pin),
+                        prefixIcon: const Icon(Icons.pin),
+                        suffixIcon: _isScanningPlate
+                            ? const Padding(
+                                padding: EdgeInsets.all(12),
+                                child: SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF2563EB)),
+                                ),
+                              )
+                            : IconButton(
+                                tooltip: 'Scan Plate with Camera',
+                                icon: const Icon(Icons.camera_alt, color: Color(0xFF2563EB)),
+                                onPressed: _showScanPicker,
+                              ),
                         helperText: 'Standard Philippine 4-wheel or motorcycle plate',
                       ),
                       validator: (v) {
@@ -426,42 +440,61 @@ class _RegisterVehicleViewState extends State<RegisterVehicleView> {
                     const SizedBox(height: 16),
 
                     DropdownButtonFormField<String>(
+                      isExpanded: true,
                       initialValue: _selectedVehicleType,
                       decoration: const InputDecoration(
                         labelText: 'Vehicle Type',
                         prefixIcon: Icon(Icons.category_outlined),
                       ),
-                      items: _vehicleTypes.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
+                      items: _vehicleTypes
+                          .map((t) => DropdownMenuItem(
+                                value: t,
+                                child: Text(t, overflow: TextOverflow.ellipsis),
+                              ))
+                          .toList(),
                       onChanged: (v) => setState(() => _selectedVehicleType = v!),
                     ),
                     const SizedBox(height: 16),
 
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            controller: _makeController,
-                            decoration: const InputDecoration(
-                              labelText: 'Brand / Make',
-                              hintText: 'e.g. Toyota, Honda',
-                              prefixIcon: Icon(Icons.car_repair),
-                            ),
-                            validator: (v) => (v == null || v.isEmpty) ? 'Enter vehicle make' : null,
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isNarrow = constraints.maxWidth < 400;
+                        final makeField = TextFormField(
+                          controller: _makeController,
+                          decoration: const InputDecoration(
+                            labelText: 'Brand / Make',
+                            hintText: 'e.g. Toyota, Honda',
+                            prefixIcon: Icon(Icons.car_repair),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextFormField(
-                            controller: _modelController,
-                            decoration: const InputDecoration(
-                              labelText: 'Model',
-                              hintText: 'e.g. Vios, Click 125',
-                              prefixIcon: Icon(Icons.directions_car_outlined),
-                            ),
-                            validator: (v) => (v == null || v.isEmpty) ? 'Enter vehicle model' : null,
+                          validator: (v) => (v == null || v.isEmpty) ? 'Enter vehicle make' : null,
+                        );
+                        final modelField = TextFormField(
+                          controller: _modelController,
+                          decoration: const InputDecoration(
+                            labelText: 'Model',
+                            hintText: 'e.g. Vios, Click 125',
+                            prefixIcon: Icon(Icons.directions_car_outlined),
                           ),
-                        ),
-                      ],
+                          validator: (v) => (v == null || v.isEmpty) ? 'Enter vehicle model' : null,
+                        );
+
+                        if (isNarrow) {
+                          return Column(
+                            children: [
+                              makeField,
+                              const SizedBox(height: 16),
+                              modelField,
+                            ],
+                          );
+                        }
+                        return Row(
+                          children: [
+                            Expanded(child: makeField),
+                            const SizedBox(width: 12),
+                            Expanded(child: modelField),
+                          ],
+                        );
+                      },
                     ),
                     const SizedBox(height: 16),
 
@@ -500,9 +533,12 @@ class _RegisterVehicleViewState extends State<RegisterVehicleView> {
                               child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                             )
                           : const Icon(Icons.app_registration),
-                      label: Text(
-                        vehicleCtrl.isLoading ? 'Registering...' : 'Register Vehicle & Generate Gate Pass',
-                        style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 15),
+                      label: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          vehicleCtrl.isLoading ? 'Registering...' : 'Register Vehicle & Generate Gate Pass',
+                          style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 15),
+                        ),
                       ),
                     ),
                   ],

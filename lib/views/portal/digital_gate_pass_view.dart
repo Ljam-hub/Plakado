@@ -185,15 +185,19 @@ class DigitalGatePassView extends StatelessWidget {
   Widget _buildRow(String label, String value) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
           style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF64748B)),
         ),
-        Flexible(
+        const SizedBox(width: 8),
+        Expanded(
           child: Text(
             value,
             textAlign: TextAlign.end,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
           ),
         ),

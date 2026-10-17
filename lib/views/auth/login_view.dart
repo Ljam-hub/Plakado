@@ -355,7 +355,7 @@ class _LoginViewState extends State<LoginView> {
                           controller: _deptController,
                           decoration: InputDecoration(
                             labelText: _selectedRole == UserRole.security ? 'Gate Assignment' : 'College / Department',
-                            hintText: 'e.g. College of Computer Studies',
+                            hintText: 'e.g. College of Informatics and Computing Innovations',
                             prefixIcon: const Icon(Icons.account_balance_outlined),
                           ),
                         ),
@@ -409,7 +409,7 @@ class _LoginViewState extends State<LoginView> {
                                           name: 'Student Test User',
                                           role: UserRole.student,
                                           idNumber: '2024-00101',
-                                          department: 'College of Computer Studies',
+                                          department: 'College of Informatics and Computing Innovations',
                                         ),
                                 style: OutlinedButton.styleFrom(
                                   padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
@@ -435,7 +435,7 @@ class _LoginViewState extends State<LoginView> {
                                           name: 'Prof. Faculty User',
                                           role: UserRole.faculty,
                                           idNumber: 'FAC-2024-001',
-                                          department: 'College of Engineering',
+                                          department: 'College of Industrial Technology',
                                         ),
                                 style: OutlinedButton.styleFrom(
                                   padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),

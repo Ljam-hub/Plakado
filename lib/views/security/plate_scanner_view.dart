@@ -7,7 +7,9 @@ import '../widgets/yolo_bounding_box_widget.dart';
 import 'verification_dialog_view.dart';
 
 class PlateScannerView extends StatefulWidget {
-  const PlateScannerView({super.key});
+  final bool returnPlateOnly;
+
+  const PlateScannerView({super.key, this.returnPlateOnly = false});
 
   @override
   State<PlateScannerView> createState() => _PlateScannerViewState();
@@ -37,6 +39,11 @@ class _PlateScannerViewState extends State<PlateScannerView> {
         await scanner.processImage(xFile.path);
 
         if (mounted && scanner.state == ScannerState.resultReady) {
+          if (widget.returnPlateOnly && scanner.recognizedPlate != null && scanner.recognizedPlate!.isNotEmpty) {
+            Navigator.pop(context, scanner.recognizedPlate);
+            scanner.reset();
+            return;
+          }
           _showResultDialog();
         }
       }
@@ -66,6 +73,10 @@ class _PlateScannerViewState extends State<PlateScannerView> {
   void _handleManualSearch() {
     final text = _manualPlateController.text.trim();
     if (text.isEmpty) return;
+    if (widget.returnPlateOnly) {
+      Navigator.pop(context, text);
+      return;
+    }
     final scanner = context.read<ScannerController>();
     scanner.verifyPlate(text);
     _manualPlateController.clear();
@@ -140,6 +151,9 @@ class _PlateScannerViewState extends State<PlateScannerView> {
                           ),
                           child: Text(
                             scanner.statusMessage!,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
                             style: const TextStyle(color: Colors.white, fontSize: 12),
                           ),
                         ),
@@ -191,9 +205,12 @@ class _PlateScannerViewState extends State<PlateScannerView> {
                                   child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                                 )
                               : const Icon(Icons.camera_alt),
-                          label: Text(
-                            scanner.isProcessing ? 'Processing ALPR...' : 'Capture Plate',
-                            style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 16),
+                          label: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              scanner.isProcessing ? 'Processing ALPR...' : 'Capture Plate',
+                              style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 16),
+                            ),
                           ),
                         ),
                       ),

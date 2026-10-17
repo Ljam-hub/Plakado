@@ -125,16 +125,20 @@ class GateLogsView extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Text(
-                                        log.plateNumber,
-                                        style: GoogleFonts.robotoMono(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w800,
-                                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                      Expanded(
+                                        child: Text(
+                                          log.plateNumber,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: GoogleFonts.robotoMono(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w800,
+                                            color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                          ),
                                         ),
                                       ),
+                                      const SizedBox(width: 8),
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                         decoration: BoxDecoration(
@@ -165,6 +169,8 @@ class GateLogsView extends StatelessWidget {
                                   const SizedBox(height: 4),
                                   Text(
                                     log.driverName,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                     style: GoogleFonts.inter(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
@@ -175,6 +181,8 @@ class GateLogsView extends StatelessWidget {
                                     const SizedBox(height: 2),
                                     Text(
                                       log.department!,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                       style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF64748B)),
                                     ),
                                   ],
@@ -182,6 +190,8 @@ class GateLogsView extends StatelessWidget {
                                     const SizedBox(height: 2),
                                     Text(
                                       log.vehicleInfo!,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                       style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF94A3B8)),
                                     ),
                                   ],

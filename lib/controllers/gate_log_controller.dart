@@ -76,11 +76,24 @@ class GateLogController extends ChangeNotifier {
 
   /// Logs entry for an authorized vehicle
   Future<void> logAuthorizedEntry(VehicleRegistration vehicle, {String? notes}) async {
+    final now = DateTime.now();
+
+    // Guard against accidental double clicks / duplicate submissions within 5 seconds
+    if (_logs.isNotEmpty) {
+      final recent = _logs.first;
+      if (recent.normalizedPlate == vehicle.normalizedPlate &&
+          recent.logType == GateLogType.entry &&
+          now.difference(recent.timestamp).inSeconds < 5) {
+        debugPrint('Duplicate entry log suppressed for ${vehicle.plateNumber}');
+        return;
+      }
+    }
+
     final log = ScanLogModel(
       id: const Uuid().v4(),
       plateNumber: vehicle.plateNumber,
       normalizedPlate: vehicle.normalizedPlate,
-      timestamp: DateTime.now(),
+      timestamp: now,
       logType: GateLogType.entry,
       accessStatus: AccessStatus.authorized,
       driverName: vehicle.ownerName,
@@ -96,11 +109,24 @@ class GateLogController extends ChangeNotifier {
 
   /// Logs exit for an authorized vehicle
   Future<void> logAuthorizedExit(VehicleRegistration vehicle, {String? notes}) async {
+    final now = DateTime.now();
+
+    // Guard against accidental double clicks / duplicate submissions within 5 seconds
+    if (_logs.isNotEmpty) {
+      final recent = _logs.first;
+      if (recent.normalizedPlate == vehicle.normalizedPlate &&
+          recent.logType == GateLogType.exit &&
+          now.difference(recent.timestamp).inSeconds < 5) {
+        debugPrint('Duplicate exit log suppressed for ${vehicle.plateNumber}');
+        return;
+      }
+    }
+
     final log = ScanLogModel(
       id: const Uuid().v4(),
       plateNumber: vehicle.plateNumber,
       normalizedPlate: vehicle.normalizedPlate,
-      timestamp: DateTime.now(),
+      timestamp: now,
       logType: GateLogType.exit,
       accessStatus: AccessStatus.authorized,
       driverName: vehicle.ownerName,
@@ -125,7 +151,19 @@ class GateLogController extends ChangeNotifier {
     String? idPresented,
   }) async {
     final formattedPlate = PlateFormatter.formatDisplay(plateNumber);
+    final norm = PlateFormatter.normalize(formattedPlate);
     final now = DateTime.now();
+
+    // Guard against accidental duplicate visitor submission within 5 seconds
+    if (_logs.isNotEmpty) {
+      final recent = _logs.first;
+      if (recent.normalizedPlate == norm &&
+          recent.logType == GateLogType.entry &&
+          now.difference(recent.timestamp).inSeconds < 5) {
+        debugPrint('Duplicate visitor entry log suppressed for $formattedPlate');
+        return;
+      }
+    }
 
     final visitor = VisitorModel(
       id: const Uuid().v4(),
@@ -145,7 +183,7 @@ class GateLogController extends ChangeNotifier {
     final log = ScanLogModel(
       id: const Uuid().v4(),
       plateNumber: formattedPlate,
-      normalizedPlate: PlateFormatter.normalize(formattedPlate),
+      normalizedPlate: norm,
       timestamp: now,
       logType: GateLogType.entry,
       accessStatus: AccessStatus.visitor,

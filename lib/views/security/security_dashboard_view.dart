@@ -404,6 +404,8 @@ class SecurityDashboardView extends StatelessWidget {
                                     children: [
                                       Text(
                                         '${log.plateNumber} • ${log.driverName}',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                         style: GoogleFonts.inter(
                                           fontWeight: FontWeight.w700,
                                           fontSize: 14,
@@ -411,6 +413,8 @@ class SecurityDashboardView extends StatelessWidget {
                                       ),
                                       Text(
                                         '${log.department ?? "Visitor"} • ${DateFormat('hh:mm a').format(log.timestamp)}',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                         style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                                       ),
                                     ],

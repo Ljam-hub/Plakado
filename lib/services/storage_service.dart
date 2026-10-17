@@ -206,16 +206,35 @@ class StorageService {
   // --- GATE LOGS ---
   List<ScanLogModel> getGateLogs() {
     final list = _prefs.getStringList(_keyLogs) ?? [];
-    final logs = list.map((jsonStr) {
-      final map = jsonDecode(jsonStr) as Map<String, dynamic>;
-      return ScanLogModel.fromJson(map);
-    }).toList();
+    final seenIds = <String>{};
+    final seenKeys = <String>{};
+    final logs = <ScanLogModel>[];
+
+    for (final jsonStr in list) {
+      try {
+        final map = jsonDecode(jsonStr) as Map<String, dynamic>;
+        final log = ScanLogModel.fromJson(map);
+
+        // Deduplicate by ID
+        if (!seenIds.add(log.id)) continue;
+
+        // Deduplicate accidental double submissions (same plate + log type within 5 seconds)
+        final timeBucket = log.timestamp.millisecondsSinceEpoch ~/ 5000;
+        final dupeKey = '${log.normalizedPlate}_${log.logType.name}_$timeBucket';
+        if (!seenKeys.add(dupeKey)) continue;
+
+        logs.add(log);
+      } catch (_) {}
+    }
+
     logs.sort((a, b) => b.timestamp.compareTo(a.timestamp)); // Newest first
     return logs;
   }
 
   Future<void> saveGateLog(ScanLogModel log) async {
     final logs = getGateLogs();
+    // Guard against duplicates
+    logs.removeWhere((l) => l.id == log.id);
     logs.insert(0, log);
     final rawList = logs.map((l) => jsonEncode(l.toJson())).toList();
     await _prefs.setStringList(_keyLogs, rawList);
@@ -254,7 +273,7 @@ class StorageService {
       name: 'Student Test User',
       email: 'student@isufst.edu.ph',
       role: UserRole.student,
-      department: 'College of Computer Studies',
+      department: 'College of Informatics and Computing Innovations',
       idNumber: '2024-00101',
     ),
     'faculty@isufst.edu.ph': UserProfile(
@@ -262,7 +281,7 @@ class StorageService {
       name: 'Prof. Faculty User',
       email: 'faculty@isufst.edu.ph',
       role: UserRole.faculty,
-      department: 'College of Engineering',
+      department: 'College of Industrial Technology',
       idNumber: 'FAC-2024-001',
     ),
     'security@isufst.edu.ph': UserProfile(
