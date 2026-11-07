@@ -13,20 +13,38 @@ class GateLogController extends ChangeNotifier {
   List<VisitorModel> _visitors = [];
   String _searchQuery = '';
   String _selectedRoleFilter = 'ALL';
+  bool _isSyncing = false;
 
   GateLogController(this._storageService) {
     refreshLogs();
+    syncWithCloud();
   }
 
   List<ScanLogModel> get allLogs => _logs;
   List<VisitorModel> get allVisitors => _visitors;
   String get searchQuery => _searchQuery;
   String get selectedRoleFilter => _selectedRoleFilter;
+  bool get isSyncing => _isSyncing;
 
   void refreshLogs() {
     _logs = _storageService.getGateLogs();
     _visitors = _storageService.getVisitors();
     notifyListeners();
+  }
+
+  /// Pulls fresh gate logs from Cloud Firestore and updates the log list
+  Future<void> syncWithCloud() async {
+    _isSyncing = true;
+    notifyListeners();
+    try {
+      await _storageService.syncFromCloud();
+      _logs = _storageService.getGateLogs();
+      _visitors = _storageService.getVisitors();
+    } catch (_) {
+    } finally {
+      _isSyncing = false;
+      notifyListeners();
+    }
   }
 
   void setSearchQuery(String query) {

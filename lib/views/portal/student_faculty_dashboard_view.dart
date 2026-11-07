@@ -13,9 +13,25 @@ import '../widgets/plate_display_widget.dart';
 import 'register_vehicle_view.dart';
 import 'digital_gate_pass_view.dart';
 import 'edit_profile_view.dart';
+import '../../utils/plate_formatter.dart';
 
-class StudentFacultyDashboardView extends StatelessWidget {
+class StudentFacultyDashboardView extends StatefulWidget {
   const StudentFacultyDashboardView({super.key});
+
+  @override
+  State<StudentFacultyDashboardView> createState() => _StudentFacultyDashboardViewState();
+}
+
+class _StudentFacultyDashboardViewState extends State<StudentFacultyDashboardView> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<GateLogController>().syncWithCloud();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,8 +49,15 @@ class StudentFacultyDashboardView extends StatelessWidget {
     // User's gate scan logs
     final myLogs = gateCtrl.allLogs.where((l) {
       if (user == null) return false;
-      return myVehicles.any((v) => v.normalizedPlate == l.normalizedPlate) ||
+      final normLogPlate = l.normalizedPlate.isNotEmpty
+          ? l.normalizedPlate
+          : PlateFormatter.normalize(l.plateNumber);
+      final plateMatch = myVehicles.any((v) =>
+          v.normalizedPlate == normLogPlate ||
+          PlateFormatter.normalize(v.plateNumber) == normLogPlate);
+      final nameMatch = l.driverName.isNotEmpty &&
           l.driverName.toLowerCase() == user.name.toLowerCase();
+      return plateMatch || nameMatch;
     }).toList();
 
     return Scaffold(
@@ -144,7 +167,12 @@ class StudentFacultyDashboardView extends StatelessWidget {
         ],
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
+        child: RefreshIndicator(
+          onRefresh: () async {
+            await gateCtrl.syncWithCloud();
+            vehicleCtrl.loadVehicles();
+          },
+          child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
           child: Center(
             child: ConstrainedBox(
@@ -416,14 +444,48 @@ class StudentFacultyDashboardView extends StatelessWidget {
                   const SizedBox(height: 28),
 
                   // Personal Gate Activity History
-                  Text(
-                    'MY RECENT GATE SCANS',
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.0,
-                      color: const Color(0xFF64748B),
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'MY RECENT GATE SCANS',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.0,
+                          color: const Color(0xFF64748B),
+                        ),
+                      ),
+                      if (gateCtrl.isSyncing)
+                        const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      else
+                        InkWell(
+                          onTap: () => gateCtrl.syncWithCloud(),
+                          borderRadius: BorderRadius.circular(12),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: const [
+                                Icon(Icons.sync, size: 14, color: Color(0xFF2563EB)),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Sync',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF2563EB),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 8),
 
@@ -492,6 +554,7 @@ class StudentFacultyDashboardView extends StatelessWidget {
               ),
             ),
           ),
+        ),
         ),
       ),
     );

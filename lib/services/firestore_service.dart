@@ -260,7 +260,7 @@ class FirestoreService {
 
   Future<List<ScanLogModel>> fetchGateLogs() async {
     try {
-      final url = Uri.parse('$restBaseUrl/gate_logs?key=$apiKey');
+      final url = Uri.parse('$restBaseUrl/gate_logs?pageSize=300&key=$apiKey');
       final res = await http.get(url);
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);

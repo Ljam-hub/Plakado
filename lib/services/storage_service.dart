@@ -119,7 +119,7 @@ class StorageService {
     }
   }
 
-  /// Pulls registered vehicles from Cloud Firestore into local storage
+  /// Pulls registered vehicles and gate logs from Cloud Firestore into local storage
   Future<void> syncFromCloud() async {
     final fs = _firestoreService;
     if (fs == null) return;
@@ -143,6 +143,26 @@ class StorageService {
         if (changed) {
           final rawList = localVehicles.map((v) => jsonEncode(v.toJson())).toList();
           await _prefs.setStringList(_keyVehicles, rawList);
+        }
+      }
+
+      // Sync gate logs from Cloud Firestore
+      final cloudLogs = await fs.fetchGateLogs();
+      if (cloudLogs.isNotEmpty) {
+        final localLogs = getGateLogs();
+        final seenIds = localLogs.map((l) => l.id).toSet();
+        bool changed = false;
+        for (final cl in cloudLogs) {
+          if (!seenIds.contains(cl.id)) {
+            localLogs.add(cl);
+            seenIds.add(cl.id);
+            changed = true;
+          }
+        }
+        if (changed) {
+          localLogs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+          final rawList = localLogs.map((l) => jsonEncode(l.toJson())).toList();
+          await _prefs.setStringList(_keyLogs, rawList);
         }
       }
     } catch (_) {}
