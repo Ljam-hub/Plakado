@@ -129,21 +129,64 @@ class PlateFormatter {
   }
 
   /// Checks if plate matches standard vehicle plate format
+  /// Prevents false positives from hex hashes (e.g. B2F9D27D), UUIDs, timestamps, or system filenames.
   static bool isValidPlate(String raw) {
     final cleaned = normalize(raw);
     if (cleaned.length < 5 || cleaned.length > 8) return false;
 
-    // Checks combinations of letters and digits
-    final hasLetters = RegExp(r'[A-Z]').hasMatch(cleaned);
-    final hasDigits = RegExp(r'[0-9]').hasMatch(cleaned);
+    // Reject obvious hex GUID segments / alternating hex patterns
+    if (RegExp(r'^[A-F0-9]{8}$', caseSensitive: false).hasMatch(cleaned) &&
+        !RegExp(r'^[A-Z]{3}\d{4}$|^[A-Z]{3}\d{3}$|^\d{3}[A-Z]{3}$').hasMatch(cleaned)) {
+      // If it looks like an 8-char hex string that doesn't follow standard plate groupings, reject
+      if (RegExp(r'\d[A-Z]\d|[A-Z]\d[A-Z]').hasMatch(cleaned)) return false;
+    }
 
-    return hasLetters && hasDigits;
+    // 1. Standard 4-wheel (3 letters + 4 digits): ABC 1234
+    if (RegExp(r'^[A-Z]{3}\d{4}$').hasMatch(cleaned)) return true;
+
+    // 2. Older 4-wheel (3 letters + 3 digits): ABC 123
+    if (RegExp(r'^[A-Z]{3}\d{3}$').hasMatch(cleaned)) return true;
+
+    // 3. Standard motorcycle (3 digits + 3 letters): 574 BSK or 123 ABC
+    if (RegExp(r'^\d{3}[A-Z]{3}$').hasMatch(cleaned)) return true;
+
+    // 4. Motorcycle 2-letter (2 letters + 4 or 5 digits): NA 12345 or NA 1234
+    if (RegExp(r'^[A-Z]{2}\d{4,5}$').hasMatch(cleaned)) return true;
+
+    // 5. Special / Trailer (1 letter + 4 or 5 digits): U 12345
+    if (RegExp(r'^[A-Z]\d{4,5}$').hasMatch(cleaned)) return true;
+
+    // 6. Legacy MV (4 digits + 2 letters): 1234 AB
+    if (RegExp(r'^\d{4}[A-Z]{2}$').hasMatch(cleaned)) return true;
+
+    // 7. Temporary / virtual plate: 2 letters + 3 digits + 1 letter (e.g. MV123A)
+    if (RegExp(r'^[A-Z]{2}\d{3}[A-Z]$').hasMatch(cleaned)) return true;
+
+    // 8. Special Protocol (3 letters + 2 digits)
+    if (RegExp(r'^[A-Z]{3}\d{2}$').hasMatch(cleaned)) return true;
+
+    return false;
   }
 
   /// Extracts the most likely license plate string from raw OCR text or QR code payload
   static String? extractPlateCandidate(String rawOcrText) {
     final trimmed = rawOcrText.trim();
     if (trimmed.isEmpty) return null;
+
+    // Reject URLs, file paths, blob URIs, and system filenames
+    if (trimmed.startsWith('blob:') ||
+        trimmed.startsWith('http://') ||
+        trimmed.startsWith('https://') ||
+        trimmed.startsWith('file:') ||
+        trimmed.contains('image_picker') ||
+        trimmed.contains('/scaled_') ||
+        trimmed.contains('\\scaled_') ||
+        trimmed.contains('/camera_') ||
+        trimmed.contains('\\camera_') ||
+        trimmed.contains('.jpg') ||
+        trimmed.contains('.png')) {
+      return null;
+    }
 
     // Priority 0: Check if input is a Digital Gate Pass QR payload
     final qrData = QrGatePassData.tryParse(trimmed);

@@ -47,18 +47,8 @@ class OcrRecognitionService {
         );
       }
 
-      // 2. Desktop/Web fallback: extract plate candidate from filename if available
-      final filename = imagePath.split(RegExp(r'[/\\]')).last.toUpperCase();
-      String? fallbackPlate = PlateFormatter.extractPlateCandidate(filename);
-
-      if (fallbackPlate != null) {
-        return OcrRecognitionResult(
-          rawText: 'DETECTED PLATE: $fallbackPlate',
-          detectedPlate: fallbackPlate,
-          isSuccess: true,
-        );
-      }
-
+      // 2. Desktop/Web: Native ML Kit is only on Android/iOS.
+      // Do not guess or fabricate plates from system filenames or blob URLs.
       return OcrRecognitionResult(
         rawText: '',
         detectedPlate: null,

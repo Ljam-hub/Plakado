@@ -40,7 +40,9 @@ class ImageProcessingService {
     try {
       final decoded = img.decodeImage(rawBytes);
       if (decoded == null) return null;
-      return decodeQrFromImage(decoded);
+      // Normalize mobile camera EXIF orientation
+      final oriented = img.bakeOrientation(decoded);
+      return decodeQrFromImage(oriented);
     } catch (_) {
       return null;
     }
@@ -49,53 +51,92 @@ class ImageProcessingService {
   /// Attempts to decode a QR Code from an img.Image instance using multiple binarization passes
   static String? decodeQrFromImage(img.Image image) {
     try {
-      final width = image.width;
-      final height = image.height;
-      if (width <= 0 || height <= 0) return null;
+      final hints = DecodeHints()..put(DecodeHintType.tryHarder);
 
-      final luminances = Int32List(width * height);
-      for (int y = 0; y < height; y++) {
-        for (int x = 0; x < width; x++) {
-          final p = image.getPixel(x, y);
-          luminances[y * width + x] = (p.luminanceNormalized * 255).round();
-        }
+      // Attempt 1: Direct multi-pass decode on full image
+      final fullResult = _decodeWithPasses(image, hints);
+      if (fullResult != null) return fullResult;
+
+      // Attempt 2: Contrast-boosted pass (critical for computer screen captures with glare/moiré)
+      try {
+        final boosted = img.adjustColor(image, contrast: 1.4);
+        final boostedResult = _decodeWithPasses(boosted, hints);
+        if (boostedResult != null) return boostedResult;
+      } catch (_) {}
+
+      // Attempt 3: Center crop (75% width & height) to eliminate camera borders/distractions
+      if (image.width > 200 && image.height > 200) {
+        try {
+          final cropW = (image.width * 0.75).round();
+          final cropH = (image.height * 0.75).round();
+          final cropX = ((image.width - cropW) / 2).round();
+          final cropY = ((image.height - cropH) / 2).round();
+          final centerCrop = img.copyCrop(image, x: cropX, y: cropY, width: cropW, height: cropH);
+          final cropResult = _decodeWithPasses(centerCrop, hints);
+          if (cropResult != null) return cropResult;
+        } catch (_) {}
       }
 
-      // Pass 1: Standard HybridBinarizer (adaptive local thresholding)
-      try {
-        final source = RGBLuminanceSource(width, height, luminances);
-        final bitmap = BinaryBitmap(HybridBinarizer(source));
-        final reader = QRCodeReader();
-        final result = reader.decode(bitmap);
-        if (result.text.isNotEmpty) return result.text;
-      } catch (_) {}
-
-      // Pass 2: GlobalHistogramBinarizer (global Otsu-like thresholding)
-      try {
-        final source = RGBLuminanceSource(width, height, luminances);
-        final bitmap = BinaryBitmap(GlobalHistogramBinarizer(source));
-        final reader = QRCodeReader();
-        final result = reader.decode(bitmap);
-        if (result.text.isNotEmpty) return result.text;
-      } catch (_) {}
-
-      // Pass 3: Inverted luminance (dark background with light QR code modules)
-      try {
-        final inverted = Int32List(width * height);
-        for (int i = 0; i < luminances.length; i++) {
-          inverted[i] = 255 - luminances[i];
-        }
-        final source = RGBLuminanceSource(width, height, inverted);
-        final bitmap = BinaryBitmap(HybridBinarizer(source));
-        final reader = QRCodeReader();
-        final result = reader.decode(bitmap);
-        if (result.text.isNotEmpty) return result.text;
-      } catch (_) {}
+      // Attempt 4: Downscaled pass for large images (smoothes screen moiré patterns)
+      if (image.width > 900) {
+        try {
+          final downscaled = img.copyResize(image, width: 800);
+          final downscaledResult = _decodeWithPasses(downscaled, hints);
+          if (downscaledResult != null) return downscaledResult;
+        } catch (_) {}
+      }
 
       return null;
     } catch (_) {
       return null;
     }
+  }
+
+  /// Helper to run HybridBinarizer, GlobalHistogramBinarizer, and Inverted passes
+  static String? _decodeWithPasses(img.Image image, DecodeHints hints) {
+    final width = image.width;
+    final height = image.height;
+    if (width <= 0 || height <= 0) return null;
+
+    final luminances = Int32List(width * height);
+    for (int y = 0; y < height; y++) {
+      for (int x = 0; x < width; x++) {
+        final p = image.getPixel(x, y);
+        luminances[y * width + x] = (p.luminanceNormalized * 255).round();
+      }
+    }
+
+    final reader = QRCodeReader();
+
+    // Pass 1: Standard HybridBinarizer (adaptive local thresholding)
+    try {
+      final source = RGBLuminanceSource(width, height, luminances);
+      final bitmap = BinaryBitmap(HybridBinarizer(source));
+      final result = reader.decode(bitmap, hints: hints);
+      if (result.text.isNotEmpty) return result.text;
+    } catch (_) {}
+
+    // Pass 2: GlobalHistogramBinarizer (global Otsu-like thresholding)
+    try {
+      final source = RGBLuminanceSource(width, height, luminances);
+      final bitmap = BinaryBitmap(GlobalHistogramBinarizer(source));
+      final result = reader.decode(bitmap, hints: hints);
+      if (result.text.isNotEmpty) return result.text;
+    } catch (_) {}
+
+    // Pass 3: Inverted luminance (dark background with light QR code modules)
+    try {
+      final inverted = Int32List(width * height);
+      for (int i = 0; i < luminances.length; i++) {
+        inverted[i] = 255 - luminances[i];
+      }
+      final source = RGBLuminanceSource(width, height, inverted);
+      final bitmap = BinaryBitmap(HybridBinarizer(source));
+      final result = reader.decode(bitmap, hints: hints);
+      if (result.text.isNotEmpty) return result.text;
+    } catch (_) {}
+
+    return null;
   }
 
   /// Step 1: Crop Region of Interest (ROI) using YOLO Bounding Box

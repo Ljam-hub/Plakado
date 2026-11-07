@@ -163,5 +163,21 @@ void main() {
       expect(freshScanner.matchedVehicle!.ownerName, equals('Lejon Osial'));
       expect(freshScanner.matchedVehicle!.ownerRole, equals(UserRole.student));
     });
+
+    test('8. PlateFormatter strictly validates Philippine plates and rejects hex GUIDs / blob paths', () {
+      // Must accept standard Philippine plates
+      expect(PlateFormatter.isValidPlate('ABC 4567'), isTrue);
+      expect(PlateFormatter.isValidPlate('ABC 123'), isTrue);
+      expect(PlateFormatter.isValidPlate('574 BSK'), isTrue);
+      expect(PlateFormatter.isValidPlate('NA 12345'), isTrue);
+
+      // Must reject hex hashes, UUID segments, and blob filenames
+      expect(PlateFormatter.isValidPlate('B2F9D27D'), isFalse);
+      expect(PlateFormatter.isValidPlate('C3A1F89E'), isFalse);
+      expect(PlateFormatter.isValidPlate('GATECAPTURE'), isFalse);
+      expect(PlateFormatter.extractPlateCandidate('blob:https://plakado.web.app/b2f9d27d-0775-4d33-9db8-0ff076fcfeb8'), isNull);
+      expect(PlateFormatter.extractPlateCandidate('image_picker_B2F9D27D-4F18-4C82.jpg'), isNull);
+      expect(PlateFormatter.extractPlateCandidate('/data/user/0/cache/scaled_image_picker.jpg'), isNull);
+    });
   });
 }

@@ -109,18 +109,15 @@ class ScannerController extends ChangeNotifier {
       final ocrResult = await _ocrService.recognizeFromPath(imagePath);
       String? plate = ocrResult.detectedPlate;
 
-      if (plate == null || plate.isEmpty) {
-        plate = PlateFormatter.extractPlateCandidate(imagePath);
-      }
-
       if (plate != null && plate.isNotEmpty) {
         _recognizedPlate = PlateFormatter.formatDisplay(plate);
         await verifyPlate(_recognizedPlate!);
       } else {
         _recognizedPlate = null;
         _state = ScannerState.error;
-        _statusMessage =
-            'No license plate or gate pass QR detected. Please point directly at the vehicle plate or student QR pass.';
+        _statusMessage = kIsWeb
+            ? 'No valid plate or gate pass QR detected. Please position the camera directly in front of the student QR pass or vehicle plate, or enter the plate number manually.'
+            : 'No license plate or gate pass QR detected. Please point directly at the vehicle plate or student QR pass.';
         notifyListeners();
       }
     } catch (e) {
@@ -134,10 +131,7 @@ class ScannerController extends ChangeNotifier {
   Future<String?> recognizePlateOnly(String imagePath) async {
     try {
       final ocrResult = await _ocrService.recognizeFromPath(imagePath);
-      String? plate = ocrResult.detectedPlate;
-      if (plate == null || plate.isEmpty) {
-        plate = PlateFormatter.extractPlateCandidate(imagePath);
-      }
+      final plate = ocrResult.detectedPlate;
       return plate != null && plate.isNotEmpty ? PlateFormatter.formatDisplay(plate) : null;
     } catch (e) {
       debugPrint('OCR registration recognition error: $e');
