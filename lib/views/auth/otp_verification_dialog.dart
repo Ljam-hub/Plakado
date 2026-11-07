@@ -251,8 +251,8 @@ class _OtpVerificationDialogState extends State<OtpVerificationDialog> with Widg
                             fontWeight: FontWeight.w700,
                             color: isDark ? const Color(0xFF93C5FD) : const Color(0xFF1D4ED8),
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                          
+                          softWrap: true,
                         ),
                       ),
                     ],

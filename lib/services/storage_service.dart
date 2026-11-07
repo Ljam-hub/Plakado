@@ -154,11 +154,27 @@ class StorageService {
     final vehicles = getVehicles();
     try {
       return vehicles.firstWhere(
-        (v) => v.normalizedPlate == normalized,
+        (v) =>
+            v.normalizedPlate.toUpperCase() == normalized ||
+            PlateFormatter.normalize(v.plateNumber) == normalized,
       );
     } catch (_) {
       return null;
     }
+  }
+
+  /// Asynchronously finds a vehicle by plate, syncing from Cloud Firestore if not found locally
+  Future<VehicleRegistration?> findVehicleByPlateAsync(String plate) async {
+    final normalized = PlateFormatter.normalize(plate);
+    if (normalized.isEmpty) return null;
+
+    // 1. Check local cache first
+    var vehicle = findVehicleByPlate(normalized);
+    if (vehicle != null) return vehicle;
+
+    // 2. Fetch fresh vehicles from Cloud Firestore and check again
+    await syncFromCloud();
+    return findVehicleByPlate(normalized);
   }
 
   List<VehicleRegistration> getVehiclesByOwner(String ownerEmail) {

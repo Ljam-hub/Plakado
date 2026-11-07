@@ -449,7 +449,7 @@ class _RegisterVehicleViewState extends State<RegisterVehicleView> {
                       items: _vehicleTypes
                           .map((t) => DropdownMenuItem(
                                 value: t,
-                                child: Text(t, overflow: TextOverflow.ellipsis),
+                                child: Text(t),
                               ))
                           .toList(),
                       onChanged: (v) => setState(() => _selectedVehicleType = v!),

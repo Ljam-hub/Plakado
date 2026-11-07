@@ -128,8 +128,7 @@ class _VerificationDialogViewState extends State<VerificationDialogView> {
                           Flexible(
                             child: Text(
                               widget.isAuthorized ? 'AUTHORIZED CAMPUS VEHICLE' : 'VISITOR / UNREGISTERED',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                              softWrap: true,
                               style: GoogleFonts.inter(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,
@@ -341,8 +340,7 @@ class _VerificationDialogViewState extends State<VerificationDialogView> {
               children: [
                 Text(
                   label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  softWrap: true,
                   style: GoogleFonts.inter(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
@@ -351,8 +349,7 @@ class _VerificationDialogViewState extends State<VerificationDialogView> {
                 ),
                 Text(
                   value,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+                  softWrap: true,
                   style: GoogleFonts.inter(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
@@ -363,8 +360,7 @@ class _VerificationDialogViewState extends State<VerificationDialogView> {
                   const SizedBox(height: 2),
                   Text(
                     subvalue,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                    softWrap: true,
                     style: GoogleFonts.inter(
                       fontSize: 12,
                       color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),

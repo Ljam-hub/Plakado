@@ -95,8 +95,7 @@ class _RegisteredVehiclesDirectoryState extends State<RegisteredVehiclesDirector
                                       Expanded(
                                         child: Text(
                                           v.ownerName,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
+                                          softWrap: true,
                                           style: GoogleFonts.inter(
                                             fontSize: 15,
                                             fontWeight: FontWeight.w700,
@@ -125,15 +124,13 @@ class _RegisteredVehiclesDirectoryState extends State<RegisteredVehiclesDirector
                                   const SizedBox(height: 4),
                                   Text(
                                     '${v.idNumber} • ${v.department}',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                                    softWrap: true,
                                     style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF64748B)),
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
                                     '${v.vehicleType}: ${v.make} ${v.model} (${v.color})',
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
+                                    softWrap: true,
                                     style: GoogleFonts.inter(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w500,

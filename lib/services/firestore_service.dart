@@ -16,7 +16,16 @@ class FirestoreService {
   final FirebaseFirestore? _firestore;
 
   FirestoreService({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? (kIsWeb ? null : FirebaseFirestore.instance);
+      : _firestore = firestore ?? _safeGetFirestoreInstance();
+
+  static FirebaseFirestore? _safeGetFirestoreInstance() {
+    if (kIsWeb) return null;
+    try {
+      return FirebaseFirestore.instance;
+    } catch (_) {
+      return null;
+    }
+  }
 
   CollectionReference<Map<String, dynamic>>? get _usersCol =>
       _firestore?.collection('users');
@@ -177,7 +186,7 @@ class FirestoreService {
   Future<List<VehicleRegistration>> fetchVehicles() async {
     // 1. Direct REST fetch (fast, guaranteed, matches C# Desktop)
     try {
-      final url = Uri.parse('$restBaseUrl/vehicles?key=$apiKey');
+      final url = Uri.parse('$restBaseUrl/vehicles?pageSize=300&key=$apiKey');
       final res = await http.get(url);
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);

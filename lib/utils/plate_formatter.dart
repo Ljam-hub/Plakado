@@ -1,3 +1,91 @@
+import 'dart:convert';
+
+/// Represents parsed Digital Gate Pass metadata from QR Code
+class QrGatePassData {
+  final String plate;
+  final String owner;
+  final String role;
+  final String idNumber;
+  final String status;
+  final String? department;
+  final String? vehicleType;
+  final String? make;
+  final String? model;
+  final String? color;
+
+  QrGatePassData({
+    required this.plate,
+    required this.owner,
+    required this.role,
+    required this.idNumber,
+    required this.status,
+    this.department,
+    this.vehicleType,
+    this.make,
+    this.model,
+    this.color,
+  });
+
+  bool get isApproved => status.toLowerCase() == 'approved';
+
+  static QrGatePassData? tryParse(String rawText) {
+    final trimmed = rawText.trim();
+    if (trimmed.isEmpty) return null;
+
+    // Check if JSON format (e.g., {"plate":"574BSK","owner":"Lejon Osial","role":"student","id":"2023-10492","status":"approved"})
+    if ((trimmed.startsWith('{') && trimmed.endsWith('}')) ||
+        (trimmed.contains('{') && trimmed.contains('}'))) {
+      try {
+        final startIndex = trimmed.indexOf('{');
+        final endIndex = trimmed.lastIndexOf('}') + 1;
+        final jsonSub = trimmed.substring(startIndex, endIndex);
+        final map = jsonDecode(jsonSub);
+        if (map is Map<String, dynamic> || map is Map) {
+          final plate = map['plate'] ?? map['plateNumber'] ?? map['plate_number'];
+          if (plate != null && plate.toString().trim().isNotEmpty) {
+            return QrGatePassData(
+              plate: PlateFormatter.normalize(plate.toString()),
+              owner: map['owner']?.toString() ?? map['ownerName']?.toString() ?? 'Student Pass Holder',
+              role: map['role']?.toString() ?? map['ownerRole']?.toString() ?? 'student',
+              idNumber: map['id']?.toString() ?? map['idNumber']?.toString() ?? '',
+              status: map['status']?.toString() ?? 'approved',
+              department: map['department']?.toString(),
+              vehicleType: map['vehicleType']?.toString(),
+              make: map['make']?.toString(),
+              model: map['model']?.toString(),
+              color: map['color']?.toString(),
+            );
+          }
+        }
+      } catch (_) {}
+    }
+
+    // Check if URL or query parameter format (e.g. ?plate=574BSK&owner=Lejon...)
+    if (trimmed.contains('plate=')) {
+      try {
+        final uri = Uri.tryParse(trimmed);
+        if (uri != null && uri.queryParameters.containsKey('plate')) {
+          final q = uri.queryParameters;
+          return QrGatePassData(
+            plate: PlateFormatter.normalize(q['plate']!),
+            owner: q['owner'] ?? 'Student Pass Holder',
+            role: q['role'] ?? 'student',
+            idNumber: q['id'] ?? '',
+            status: q['status'] ?? 'approved',
+            department: q['department'],
+            vehicleType: q['vehicleType'],
+            make: q['make'],
+            model: q['model'],
+            color: q['color'],
+          );
+        }
+      } catch (_) {}
+    }
+
+    return null;
+  }
+}
+
 class PlateFormatter {
   /// Cleans raw text into a normalized alphanumeric plate string
   static String normalize(String raw) {
@@ -52,11 +140,18 @@ class PlateFormatter {
     return hasLetters && hasDigits;
   }
 
-  /// Extracts the most likely license plate string from raw OCR text
+  /// Extracts the most likely license plate string from raw OCR text or QR code payload
   static String? extractPlateCandidate(String rawOcrText) {
-    if (rawOcrText.trim().isEmpty) return null;
+    final trimmed = rawOcrText.trim();
+    if (trimmed.isEmpty) return null;
 
-    final lines = rawOcrText
+    // Priority 0: Check if input is a Digital Gate Pass QR payload
+    final qrData = QrGatePassData.tryParse(trimmed);
+    if (qrData != null && qrData.plate.isNotEmpty) {
+      return formatDisplay(qrData.plate);
+    }
+
+    final lines = trimmed
         .split('\n')
         .map((l) => l.trim())
         .where((l) => l.isNotEmpty)
@@ -81,7 +176,7 @@ class PlateFormatter {
     }
 
     // Priority 2: Clean tokens and evaluate candidates
-    final tokens = rawOcrText
+    final tokens = trimmed
         .replaceAll(RegExp(r'[^A-Za-z0-9\s]'), ' ')
         .split(RegExp(r'\s+'))
         .where((t) => t.length >= 5 && t.length <= 8)

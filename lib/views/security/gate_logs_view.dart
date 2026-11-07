@@ -129,8 +129,7 @@ class GateLogsView extends StatelessWidget {
                                       Expanded(
                                         child: Text(
                                           log.plateNumber,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
+                                          softWrap: true,
                                           style: GoogleFonts.robotoMono(
                                             fontSize: 16,
                                             fontWeight: FontWeight.w800,
@@ -169,29 +168,26 @@ class GateLogsView extends StatelessWidget {
                                   const SizedBox(height: 4),
                                   Text(
                                     log.driverName,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                                    softWrap: true,
                                     style: GoogleFonts.inter(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
                                       color: isDark ? const Color(0xFFF1F5F9) : const Color(0xFF1E293B),
                                     ),
                                   ),
-                                  if (log.department != null) ...[
+                                  if (log.department != null && log.department!.isNotEmpty) ...[
                                     const SizedBox(height: 2),
                                     Text(
                                       log.department!,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                                      softWrap: true,
                                       style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF64748B)),
                                     ),
                                   ],
-                                  if (log.vehicleInfo != null) ...[
+                                  if (log.vehicleInfo != null && log.vehicleInfo!.isNotEmpty) ...[
                                     const SizedBox(height: 2),
                                     Text(
                                       log.vehicleInfo!,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                                      softWrap: true,
                                       style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF94A3B8)),
                                     ),
                                   ],

@@ -62,14 +62,14 @@ class StudentFacultyDashboardView extends StatelessWidget {
                 children: [
                   Text(
                     'Campus Pass',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    
+                    softWrap: true,
                     style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w800),
                   ),
                   Text(
                     user?.role.displayName ?? 'Student',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    
+                    softWrap: true,
                     style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
                   ),
                 ],
@@ -188,8 +188,8 @@ class StudentFacultyDashboardView extends StatelessWidget {
                             children: [
                               Text(
                                 user?.name ?? 'Student',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                                
+                                softWrap: true,
                                 style: GoogleFonts.inter(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w800,
@@ -199,15 +199,15 @@ class StudentFacultyDashboardView extends StatelessWidget {
                               const SizedBox(height: 2),
                               Text(
                                 '${user?.idNumber} • ${user?.department}',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                                
+                                softWrap: true,
                                 style: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                               ),
                               const SizedBox(height: 2),
                               Text(
                                 user?.email ?? '',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                                
+                                softWrap: true,
                                 style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
                               ),
                             ],
@@ -334,8 +334,8 @@ class StudentFacultyDashboardView extends StatelessWidget {
                                             Expanded(
                                               child: Text(
                                                 '${v.make} ${v.model}',
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
+                                                
+                                                softWrap: true,
                                                 style: GoogleFonts.inter(
                                                   fontSize: 16,
                                                   fontWeight: FontWeight.w700,
@@ -364,15 +364,15 @@ class StudentFacultyDashboardView extends StatelessWidget {
                                         const SizedBox(height: 4),
                                         Text(
                                           '${v.vehicleType} • Color: ${v.color}',
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
+                                          
+                                          softWrap: true,
                                           style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
                                           'Registered ${DateFormat('MMM dd, yyyy').format(v.registeredAt)}',
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
+                                          
+                                          softWrap: true,
                                           style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
                                         ),
                                       ],
@@ -470,8 +470,8 @@ class StudentFacultyDashboardView extends StatelessWidget {
                               Expanded(
                                 child: Text(
                                   '${log.plateNumber} • ${isEntry ? "Entered" : "Exited"} Campus Gate',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+                                  
+                                  softWrap: true,
                                   style: GoogleFonts.inter(
                                     fontWeight: FontWeight.w600,
                                     fontSize: 13,

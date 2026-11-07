@@ -36,7 +36,8 @@ class _PlateScannerViewState extends State<PlateScannerView> {
 
       if (xFile != null && mounted) {
         final scanner = context.read<ScannerController>();
-        await scanner.processImage(xFile.path);
+        final bytes = await xFile.readAsBytes();
+        await scanner.processImage(xFile.path, bytes: bytes);
 
         if (mounted && scanner.state == ScannerState.resultReady) {
           if (widget.returnPlateOnly && scanner.recognizedPlate != null && scanner.recognizedPlate!.isNotEmpty) {
@@ -70,7 +71,7 @@ class _PlateScannerViewState extends State<PlateScannerView> {
     );
   }
 
-  void _handleManualSearch() {
+  Future<void> _handleManualSearch() async {
     final text = _manualPlateController.text.trim();
     if (text.isEmpty) return;
     if (widget.returnPlateOnly) {
@@ -78,9 +79,11 @@ class _PlateScannerViewState extends State<PlateScannerView> {
       return;
     }
     final scanner = context.read<ScannerController>();
-    scanner.verifyPlate(text);
     _manualPlateController.clear();
-    _showResultDialog();
+    await scanner.verifyPlate(text);
+    if (mounted) {
+      _showResultDialog();
+    }
   }
 
   @override
@@ -151,8 +154,8 @@ class _PlateScannerViewState extends State<PlateScannerView> {
                           ),
                           child: Text(
                             scanner.statusMessage!,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
+                            
+                            softWrap: true,
                             textAlign: TextAlign.center,
                             style: const TextStyle(color: Colors.white, fontSize: 12),
                           ),

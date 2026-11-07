@@ -196,8 +196,8 @@ class DigitalGatePassView extends StatelessWidget {
           child: Text(
             value,
             textAlign: TextAlign.end,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
+            
+            softWrap: true,
             style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
           ),
         ),

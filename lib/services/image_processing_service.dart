@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/services.dart' show rootBundle, ByteData;
 import 'package:image/image.dart' as img;
+import 'package:zxing2/qrcode.dart';
 
 /// Represents a detected bounding box from YOLO (You Only Look Once)
 class YoloBoundingBox {
@@ -33,6 +34,70 @@ class YoloBoundingBox {
 
 /// Digital Image Processing (DIP) and YOLO Computer Vision Service
 class ImageProcessingService {
+  /// Attempts to decode a QR Code from raw image bytes (e.g. Student Digital Gate Pass)
+  static String? decodeQrFromBytes(Uint8List rawBytes) {
+    if (rawBytes.isEmpty) return null;
+    try {
+      final decoded = img.decodeImage(rawBytes);
+      if (decoded == null) return null;
+      return decodeQrFromImage(decoded);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Attempts to decode a QR Code from an img.Image instance using multiple binarization passes
+  static String? decodeQrFromImage(img.Image image) {
+    try {
+      final width = image.width;
+      final height = image.height;
+      if (width <= 0 || height <= 0) return null;
+
+      final luminances = Int32List(width * height);
+      for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+          final p = image.getPixel(x, y);
+          luminances[y * width + x] = (p.luminanceNormalized * 255).round();
+        }
+      }
+
+      // Pass 1: Standard HybridBinarizer (adaptive local thresholding)
+      try {
+        final source = RGBLuminanceSource(width, height, luminances);
+        final bitmap = BinaryBitmap(HybridBinarizer(source));
+        final reader = QRCodeReader();
+        final result = reader.decode(bitmap);
+        if (result.text.isNotEmpty) return result.text;
+      } catch (_) {}
+
+      // Pass 2: GlobalHistogramBinarizer (global Otsu-like thresholding)
+      try {
+        final source = RGBLuminanceSource(width, height, luminances);
+        final bitmap = BinaryBitmap(GlobalHistogramBinarizer(source));
+        final reader = QRCodeReader();
+        final result = reader.decode(bitmap);
+        if (result.text.isNotEmpty) return result.text;
+      } catch (_) {}
+
+      // Pass 3: Inverted luminance (dark background with light QR code modules)
+      try {
+        final inverted = Int32List(width * height);
+        for (int i = 0; i < luminances.length; i++) {
+          inverted[i] = 255 - luminances[i];
+        }
+        final source = RGBLuminanceSource(width, height, inverted);
+        final bitmap = BinaryBitmap(HybridBinarizer(source));
+        final reader = QRCodeReader();
+        final result = reader.decode(bitmap);
+        if (result.text.isNotEmpty) return result.text;
+      } catch (_) {}
+
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Step 1: Crop Region of Interest (ROI) using YOLO Bounding Box
   static img.Image cropRoi(img.Image sourceImage, YoloBoundingBox box) {
     final left = (box.x * sourceImage.width).round().clamp(0, sourceImage.width - 1);

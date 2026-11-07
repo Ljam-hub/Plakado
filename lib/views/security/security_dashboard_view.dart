@@ -44,14 +44,12 @@ class SecurityDashboardView extends StatelessWidget {
                 children: [
                   Text(
                     'Gate Security',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    softWrap: true,
                     style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w800),
                   ),
                   Text(
                     '${user?.name ?? "Officer"} (${user?.idNumber ?? "Main Gate"})',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    softWrap: true,
                     style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
                   ),
                 ],
@@ -404,8 +402,8 @@ class SecurityDashboardView extends StatelessWidget {
                                     children: [
                                       Text(
                                         '${log.plateNumber} • ${log.driverName}',
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
+                                        
+                                        softWrap: true,
                                         style: GoogleFonts.inter(
                                           fontWeight: FontWeight.w700,
                                           fontSize: 14,
@@ -413,8 +411,8 @@ class SecurityDashboardView extends StatelessWidget {
                                       ),
                                       Text(
                                         '${log.department ?? "Visitor"} • ${DateFormat('hh:mm a').format(log.timestamp)}',
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
+                                        
+                                        softWrap: true,
                                         style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                                       ),
                                     ],

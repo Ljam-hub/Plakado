@@ -38,15 +38,16 @@ class QuickStatCard extends StatelessWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
                 child: Text(
                   title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  softWrap: true,
                   style: GoogleFonts.inter(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
@@ -68,8 +69,7 @@ class QuickStatCard extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+            softWrap: true,
             style: GoogleFonts.inter(
               fontSize: 26,
               fontWeight: FontWeight.w800,
@@ -80,8 +80,7 @@ class QuickStatCard extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               subtitle!,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+              softWrap: true,
               style: GoogleFonts.inter(
                 fontSize: 11,
                 color: const Color(0xFF94A3B8),

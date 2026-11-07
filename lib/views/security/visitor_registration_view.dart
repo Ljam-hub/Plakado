@@ -401,14 +401,14 @@ class _VisitorRegistrationViewState extends State<VisitorRegistrationView> {
                       selectedItemBuilder: (context) => _purposes
                           .map((p) => Text(
                                 p,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                                
+                                
                               ))
                           .toList(),
                       items: _purposes
                           .map((p) => DropdownMenuItem(
                                 value: p,
-                                child: Text(p, overflow: TextOverflow.ellipsis),
+                                child: Text(p),
                               ))
                           .toList(),
                       onChanged: (v) => setState(() => _selectedPurpose = v!),
@@ -442,14 +442,14 @@ class _VisitorRegistrationViewState extends State<VisitorRegistrationView> {
                       selectedItemBuilder: (context) => _buildings
                           .map((b) => Text(
                                 b,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                                
+                                
                               ))
                           .toList(),
                       items: _buildings
                           .map((b) => DropdownMenuItem(
                                 value: b,
-                                child: Text(b, overflow: TextOverflow.ellipsis),
+                                child: Text(b),
                               ))
                           .toList(),
                       onChanged: (v) => setState(() => _selectedBuilding = v!),
@@ -540,7 +540,7 @@ class _VisitorRegistrationViewState extends State<VisitorRegistrationView> {
       items: _idTypes
           .map((i) => DropdownMenuItem(
                 value: i,
-                child: Text(i, overflow: TextOverflow.ellipsis),
+                child: Text(i),
               ))
           .toList(),
       onChanged: (v) => setState(() => _selectedId = v!),
